@@ -1,57 +1,47 @@
 # Platform targets — The X-plorator
 
-Decision date: 2026-10-23. **PC WEB BROWSER FIRST.** Visual art style remains the *approved locked* serene blue-violet/cyan cosmic gameplay direction (the owner-designated **IMG 7**). Earlier menu/ship/station screenshots indicate preferred **layout** only, not a new art style.
+Decision: **PC browser is primary; phone browsers MUST be fully playable, not merely shrink-to-fit.** Optional Xbox Edge controller support is experimental and must be tested. The cosmic blue/violet style from owner-approved IMG 7 remains LOCKED; other screenshots are references for UI layout only.
 
-## Priority and scope
+## Supported targets
+1. **PC desktop browsers** in Project 0 — primary target. Mouse/keyboard, optional Xbox gamepad. Preferred aspect 16:9.
+2. **Phone browsers** in Project 0 — required target. **Portrait and landscape, real touch controls, fully navigable UI and adaptive scene framing.** Do not require a keyboard, hover, scroll wheel or Bluetooth controller to play.
+3. **Standalone browser demo** — secondary development/test runtime outside P0, allowing child-appropriate family play separately without P0 account/ATT/payment/chat.
+4. **Xbox Series X|S Edge** — optional browser compatibility, not verified. Browser shortcuts may capture B/X/Y/LB/RB. On-console smoke test mandatory before any compatibility claim.
+5. **Native Xbox installation** — out of scope for MVP.
 
-1. **P0 City in PC browser — primary production target.** Desktop Chromium/Firefox where supported, keyboard + mouse, optional Xbox-compatible gamepad, true 3D flight with chase camera. P0 API and packaging must be verified, never guessed.
-2. **Standalone browser demo — secondary testing surface.** Run same original gameplay core outside P0 through an independent adapter where technically/legal permitted; no P0 sessions, Attention Tokens or simulated real purchases. Ideal place to test gamepad, couch co-op, and non-P0 family play. Secure saves/multiplayer would require a separate design.
-3. **Xbox Edge browser — experimental future compatibility target.** Xbox Series X|S has Edge (Microsoft official guide). It is not yet confirmed that the P0 page, its sandbox, pointer lock, Gamepad API permissions or shaders work there; test on actual console. **IMPORTANT:** Xbox Edge officially reserves B (back), X (new tab), Y (history) and LB/RB (tab switching), and may steal them from gameplay. Do not presume normal standard Gamepad API behavior inside the browser: test, detect, offer remapping and an alternative input path. The game may be accessible via Edge **without native installation**. Do not promise installable Xbox PWA from general Windows Edge PWA documentation.
-4. **Natively installed Xbox game — out of scope.** Different build/publishing path (for commercial retail, ID@Xbox/GDK); UWP games are no longer accepted in Xbox Store. Do not plan a native Xbox package in M1.
+## PHONE IS A REAL GAME CLIENT: acceptance rules
+- **Design targets:** 360×800, 390×844 portrait, 800×360 and 844×390 landscape, plus desktop 1280×720/1920×1080. Include tablet layout when inexpensive.
+- Prefer landscape for expressive free-flight space/visibility, but **portrait remains fully playable** using taller framing, increased camera distance/FOV if sensible, lighter HUD and collapsible panels. Do not disable gameplay in portrait.
+- On phone, place a floating **left-thumb joystick** inside the safe zone for yaw/pitch, **right-thumb thrust/brake/boost and scan/interact**, and a touch camera-look region or contextual drag. Expose roll as optional simplified toggle/autolevel; no need for simulated six-axis controls at once.
+- Keep touch buttons ≥44×44 CSS pixels where possible and space them for thumbs; UI must work without hover; menus use accessible semantic controls, not tiny on-canvas hit targets.
+- Use mobile safe areas via `env(safe-area-inset-*)`, viewport-fit=cover when appropriate, `dvh` where supported. Account for phone browser bars and notches.
+- Canvas/render sizing tracks CSS viewport and internal pixel ratio **independently**; never stretch a fixed 16:9 screenshot to fill portrait.
+- Reframe 3D camera independently by aspect ratio: keep ship readable, avoid hiding nearby targets behind thumbs or HUD, relocate mission and compass into compact mobile regions.
+- Touch: Pointer Events + explicit `touch-action:none` only on game touch controls, correct pointer capture/cancel/visibility handling, avoid blocking normal UI scrolling elsewhere.
+- Default graphic **quality=mobile**: lower pixel ratio if needed, disable expensive bloom/volumetric passes, reduce particle density, reduce shader noise/octaves. Keep the signature luminous planet edge/blue-violet mood at lower cost.
+- Target aspirational 30 FPS on representative lower/midrange phones; use real measured frame time and battery/thermal observation. This is NOT a verified P0 performance guarantee.
+- Smooth transition on resize/orientation change without losing progress, pointer gestures or render context; no forced orientation requirement.
+- Clear pause/settings/help, mute and reduced motion; audio starts after gesture.
+- Manual QA: one-handed accessibility is a future option; full basic flight should work with both thumbs and no external hardware.
 
-## Family play safety / platform age limits
+## Shared input model
+All controls feed ONE semantic `InputActions`: yaw/pitch/roll/thrust/brake/boost/camera/interact/scan/map/back/pause. The existing `src/input/gamepad.mjs` is gamepad mapping only. Add `src/input/touch.mjs` without introducing another render loop or changing P0's input hooks until SDK audited. Keyboard/mouse remains desktop default. Switch displayed button hints based on last active input device.
 
-Project 0 Terms of Service (2026-10-21) state P0 is for **ages 16 and older**, and requires one account per person. Child co-creator is younger. **Do not create or use a P0 account for a child under 16**. Instead build age-appropriate **standalone browser local playtest** (optionally PC connected to TV + two controllers), with no P0 log-in, ATT transactions or public chat. Online co-op for standalone users is a distinct networking task, not automatically provided by P0.
-Official P0 terms: https://project0.city/terms
+## Xbox/TV support
+- 16:9 TV 1280×720/1920×1080 with large, readable high-contrast menu text/focus indicators and ~5% safe margin.
+- Test standard Gamepad API access in P0 sandbox and Xbox Edge; Microsoft's Edge browser may intercept B/X/Y/LB/RB for browser navigation. No guarantee Xbox browser can run the game/controller.
+- PC-to-TV with two controllers is the easiest future local family play mode. Native Xbox port/splitscreen are later choices.
 
-## Controls — gamepad-first optional, not gamepad-only
-- Keyboard/mouse remains primary, controller optional; one logical action schema drives both.
-- Xbox controller recommended mapping in `codex/TASK_INPUT_001.md`.
-- Remappable actions and sensitivity; separate camera and ship controls.
-- UI operable entirely with controller via focus, D-pad and A/B, not a cursor-only UI.
-- Account/password/monetisation pages remain outside custom controller shortcuts and must respect platform UI.
-- Do not assume `navigator.getGamepads()` is enabled inside P0's sandboxed frame. Check Gamepad API availability, secure context, user gesture, Permissions-Policy and focus on real P0 instance.
-- Test disconnect/reconnect, two-controller enumeration, drift/deadzone and no-controller fallback.
-- **On Xbox Edge, browser-level B/X/Y/LB/RB shortcuts may prevent gameplay actions.** Remapping or a dedicated browser game mode may be required; do not claim success without console testing.
+## Family/account restriction
+Project 0's current terms state 16+ and one account/person: https://project0.city/terms . Child testing goes through a **separate standalone age-appropriate build**, not a younger child's P0 login or use of parent's account to bypass eligibility. Offline local co-op is not Project 0 multiplayer.
 
-## TV / 10-foot interface
+## Reference links
+- https://project0.city/skill.md
+- https://project0.city/guides/games.md
+- https://project0.city/guides/assets.md
+- https://developer.mozilla.org/en-US/docs/Web/API/Pointer_events
+- https://developer.mozilla.org/en-US/docs/Web/API/VisualViewport
+- https://developer.mozilla.org/en-US/docs/Web/API/Gamepad_API
+- https://www.microsoft.com/en-us/edge/learning-center/how-to-use-microsoft-edge-on-xbox
 
-- 16:9 1920x1080 and 1280x720; 1366x768 also useful; 4K TV via responsive upscale, not native 4K render requirement.
-- Keep selectable menu targets large, obvious focus rings and legible fonts at viewing distance; target ~22+ CSS px for menu body at nominal 1080p TV layout subject to browser scaling.
-- Safe margins ~5% screen on TV to avoid overscan; account for Xbox browser bars and safe areas.
-- Avoid mouse-hover-only controls, long text in small HUD, any hard mobile portrait assumptions.
-- Quality settings and a lower-cost planet/ring/shader fallback if frame pacing drops.
-
-## Couch co-op — separate milestone
-
-Option A, easiest: connect PC browser to living-room TV, use one controller for ship and second for scanner/navigation/crew role (one-screen/asymmetric co-op), no external multiplayer network requirement. UI needs clear shared roles.
-
-Option B: two players on separate devices in a standalone build. Requires independent identity/session/lobby/networking and synchronized game state — NOT automatically inherited from P0 multiplayer.
-
-Option C: native split-screen two ships: much higher rendering cost and more implementation; assess after solid single-player performance. Keep optional.
-
-## Exact acceptance test on Xbox
-- Open Edge on console and navigate to test URL.
-- Check actual JS/WebGL support, input events, gamepad polling, controller navigation and fullscreen/pointer lock behavior.
-- Run rendered 3D flight for 10+ minutes, monitor crashes, FPS/frame times if measurable, input latency, text legibility, controller reconnect.
-- Report console model, browser version, test build, screenshots/video and limitations. Never claim a pass without running it.
-- If P0 version blocked, try standalone browser URL independently and report the distinction.
-
-## Trusted references
-- Microsoft Xbox Edge official guide (including **browser controller shortcuts**): https://www.microsoft.com/en-us/edge/learning-center/how-to-use-microsoft-edge-on-xbox
-- MDN Gamepad API: https://developer.mozilla.org/en-US/docs/Web/API/Gamepad_API
-- Microsoft current Xbox publication path: https://learn.microsoft.com/en-us/gaming/game-publishing/publishing-processes/managed-creators/overview
-- Microsoft UWP Xbox FAQ (UWP games not accepted for Xbox Store): https://learn.microsoft.com/en-us/windows/uwp/xbox-apps/frequently-asked-questions
-- P0 terms: https://project0.city/terms
-
-No native app development, paid store, or Xbox install until independently justified.
+**SDK integration remains unverified:** check current official docs before implementing P0's renderer lifecycle, frame callbacks, save or session APIs.
