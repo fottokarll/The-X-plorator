@@ -1,41 +1,34 @@
-# Art Bible v0.2 — LOCKED visual direction
+# Art Bible v0.3 — LOCKED cosmic art direction
 
-## Visual north star: user-approved IMG 7 (October 23, 2026)
-**Ethereal blue-violet space ocean.** Deep cobalt / indigo / violet instead of flat black; large serene azure planets rim-lit in cyan/pink, delicate stellar dust, layered parallax haze, sculpted low-poly asteroids, soft bloom and luminous shafts. The tiny, graceful white spaceship is the protagonist and visual scale anchor, almost swimming through space with fluid drifting/boosting. Calm, hopeful, beautiful and restrained rather than an aggressive neon arcade. This style is LOCKED; do not reinterpret it based on the earlier UI examples.
+## Locked visual north star
+Owner-approved **IMG 7**: tranquil *blue-violet luminous space ocean*. Avoid flat black. Giant cyan/azure planet rim glow, indigo/violet haze, delicate lilac nebula, sparse star specks, atmospheric shafts, soft bloom, tiny graceful white spaceship with cyan engine trail. Deliberate negative space, painterly gradients and restrained sci-fi UI. Other mockups are for MENU/HANGAR/BUILD/FLIGHT LAYOUT only, NOT new art styles.
 
-The previous example screens supply **LAYOUT references only**:
-- Main menu + starting vessel/purchasing cards.
-- Hangar viewed mostly from top, neat equipment slots and inventory.
-- Modular hexagonal orbital outposts floating in space.
-- Small-ship flight and chase-behind-ship camera options.
+## Palette, illustrative shader parameters
+- Deep indigo `#071631`, violet `#1B205A`, cosmic blue `#123C85`.
+- Azure `#2189C9`, rim cyan `#70E2F4`.
+- Nebula lilac `#985DC8`, blush `#E5A1CF`, warm sunrise `#F5D5B0`.
+- HUD `#E6F6FD`, muted amber accent `#F8BD78` for secondary focus.
 
-The AI concept screens are visual targets, **not gameplay captures or code implementation evidence**. Don't upload or reuse third-party reference art without permission.
+## Visual layering
+1. Large quiet colour field / blue-to-violet starfield.
+2. Huge soft-lit planet with thin luminous rim, orbital curves and distant haze.
+3. Sparse faceted asteroids/crystals and atmospheric particles.
+4. Small clear high-contrast spaceship and natural-looking boost trail.
+5. Elegant vector-like HUD with limited visible controls.
 
-## Palette — starting shader references, not exact sampled proof
-- Blue-black indigo `#071631`, deep violet `#1B205A`, cosmic blue `#123C85`.
-- Rich azure `#2189C9`, rim cyan `#70E2F4`.
-- Nebula lilac `#985DC8`, pink glow `#E5A1CF`, warm sunrise `#F5D5B0`.
-- HUD off-white `#E6F6FD`, attention orange accent `#F8BD78` only as secondary.
-Avoid high-density noise everywhere. Compose with large calm blue areas and one luminous focal planet.
+## Technology
+Low-poly 3D meshes, GPU shaders, seeded planets, instanced rocks, simple glow/limited full-screen passes, vector HTML/CSS/SVG for interface if platform permits. We do NOT need PNG or GLB for initial code-art test; later selectively authored meshes permitted if runtime quality misses visual target. Concept image is not a screenshot from a real running game.
 
-## Scene hierarchy
-1. Empty space with soft blue-violet gradient and minimal star points (negative space).
-2. Giant distant/close planets with layered rim Fresnel gradients and atmospheric glow.
-3. Midground asteroid belt and select crystal rocks; distant layers desaturated, foreground silhouette.
-4. Small high-contrast white spacecraft with soft cyan engine trails and readable orientation.
-5. Minimal glassy vector HUD overlay with legible TV text, monitor/browser focus and accessibility.
+## Camera and composition across devices
+- **PC landscape:** free 3D chase camera with optional wide/cinematic pullback, spacious unobstructed central flight region.
+- **Phone landscape:** same gameplay but compact HUD at corners, left touch-stick, right touch actions, primary target above ship with safe thumb zones.
+- **Phone portrait:** reframe camera, shrink/or reposition distant background objects based on composition, move ship to a thumb-safe zone; bottom controls and collapsible mission panel. No stretching or zoom/crop that hides gameplay; must remain playable.
+- **Build:** orthographic hex isometric camera, multi-row build tray or bottom-sheet modal on phone.
+- **Hangar:** ship top view and equipment arranged into scrollable touch-friendly cards, not desktop 7-sidebars shrunk to 360px.
+- **Map:** free pan/zoom and touch-friendly selection; desktop node view can be spacious.
 
-## Code vs assets
-Original procedural sphere meshes, gradient/noise shaders, instanced asteroids, volumetric-looking but inexpensive ray approximations, geometric hex modules. No PNG/GLB requirement in visual prototype; if actual real-time screenshots fail quality gate, request selective authored 3D assets before continuing. Not every AI-painted microdetail is possible at constant mobile FPS.
+## Sound and accessibility
+Original/licensed soft piano and ambient synth, sound unlock on user gesture, mute/reduced motion, readable contrast and scalable UI. Avoid copyrighted ABZU music/art.
 
-## Lighting
-Thin luminous planet rim and selective bloom, 1 dominant directional sun with colour fill, light shafts only in strategic areas, limited translucent layers on browser GPU, bloom and particles scale by quality settings. No full-screen expensive fog as mandatory effect.
-
-## Sound
-Original/licensed minimal piano and pads, quiet binaural-feeling ambient movement without using copyrighted ABZU recording/composition. User-gesture audio start, mute and sound volume.
-
-## Cameras
-Perspective chase for fluid free-space piloting; distant camera option showing tiny craft against huge planet; orthographic/isometric for bases and experimental 2.5D comparison. Use same assets in tests. Flight remains free 3D preferred.
-
-## Multi-platform visual tests
-Desktop 16:9 1280x720 / 1920x1080 FIRST; optional Xbox/TV 10-foot legibility; mobile 360px responsive SECOND. Test true renderer output on real devices, measured frames and screen captures. Do not claim visually generated posters are running code.
+## Visual quality tests
+Real running-code screenshots for desktop 1920×1080, phone portrait 390×844 and phone landscape 844×390, all from same seed; no generated images masquerading as in-game captures. Check that small ship remains readable and planet focal glow remains identifiable at lower-quality presets. Record actual FPS/frame pacing where available.
