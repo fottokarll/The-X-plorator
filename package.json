@@ -1,0 +1,11 @@
+{
+  "name": "the-x-plorator",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "lab": "python3 -m http.server 8080"
+  },
+  "description": "Project 0 City browser space game — preproduction tooling"
+}
