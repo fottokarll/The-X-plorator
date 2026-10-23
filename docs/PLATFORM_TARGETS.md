@@ -6,7 +6,7 @@ Decision date: 2026-10-23. **PC WEB BROWSER FIRST.** Visual art style remains th
 
 1. **P0 City in PC browser — primary production target.** Desktop Chromium/Firefox where supported, keyboard + mouse, optional Xbox-compatible gamepad, true 3D flight with chase camera. P0 API and packaging must be verified, never guessed.
 2. **Standalone browser demo — secondary testing surface.** Run same original gameplay core outside P0 through an independent adapter where technically/legal permitted; no P0 sessions, Attention Tokens or simulated real purchases. Ideal place to test gamepad, couch co-op, and non-P0 family play. Secure saves/multiplayer would require a separate design.
-3. **Xbox Edge browser — experimental future compatibility target.** Xbox Series X|S has Edge (Microsoft official guide). It is not yet confirmed that the P0 page, its sandbox, pointer lock, Gamepad API permissions or shaders work there; test on actual console. The game may be accessible via Edge **without native installation**. Do not promise installable Xbox PWA from general Windows Edge PWA documentation.
+3. **Xbox Edge browser — experimental future compatibility target.** Xbox Series X|S has Edge (Microsoft official guide). It is not yet confirmed that the P0 page, its sandbox, pointer lock, Gamepad API permissions or shaders work there; test on actual console. **IMPORTANT:** Xbox Edge officially reserves B (back), X (new tab), Y (history) and LB/RB (tab switching), and may steal them from gameplay. Do not presume normal standard Gamepad API behavior inside the browser: test, detect, offer remapping and an alternative input path. The game may be accessible via Edge **without native installation**. Do not promise installable Xbox PWA from general Windows Edge PWA documentation.
 4. **Natively installed Xbox game — out of scope.** Different build/publishing path (for commercial retail, ID@Xbox/GDK); UWP games are no longer accepted in Xbox Store. Do not plan a native Xbox package in M1.
 
 ## Family play safety / platform age limits
@@ -22,6 +22,7 @@ Official P0 terms: https://project0.city/terms
 - Account/password/monetisation pages remain outside custom controller shortcuts and must respect platform UI.
 - Do not assume `navigator.getGamepads()` is enabled inside P0's sandboxed frame. Check Gamepad API availability, secure context, user gesture, Permissions-Policy and focus on real P0 instance.
 - Test disconnect/reconnect, two-controller enumeration, drift/deadzone and no-controller fallback.
+- **On Xbox Edge, browser-level B/X/Y/LB/RB shortcuts may prevent gameplay actions.** Remapping or a dedicated browser game mode may be required; do not claim success without console testing.
 
 ## TV / 10-foot interface
 
@@ -47,7 +48,7 @@ Option C: native split-screen two ships: much higher rendering cost and more imp
 - If P0 version blocked, try standalone browser URL independently and report the distinction.
 
 ## Trusted references
-- Microsoft Xbox Edge official guide: https://www.microsoft.com/en-us/edge/learning-center/how-to-use-microsoft-edge-on-xbox
+- Microsoft Xbox Edge official guide (including **browser controller shortcuts**): https://www.microsoft.com/en-us/edge/learning-center/how-to-use-microsoft-edge-on-xbox
 - MDN Gamepad API: https://developer.mozilla.org/en-US/docs/Web/API/Gamepad_API
 - Microsoft current Xbox publication path: https://learn.microsoft.com/en-us/gaming/game-publishing/publishing-processes/managed-creators/overview
 - Microsoft UWP Xbox FAQ (UWP games not accepted for Xbox Store): https://learn.microsoft.com/en-us/windows/uwp/xbox-apps/frequently-asked-questions
