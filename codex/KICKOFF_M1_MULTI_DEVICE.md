@@ -15,6 +15,9 @@ Verify current official Project 0 SDK interfaces, supported renderer ownership, 
 ### Phase B — ONE stunning real scene (Visual Gate)
 Construct one small white procedural 3D hero ship and one hero oceanic shader planet amid restrained faceted asteroids, violet/cobalt atmosphere, cyan rim light and minimal dust. Match IMG 7's **visual grammar**, not an overly detailed AI image. Use actual running browser renderer screenshots, **not image generation**. Test performance and visual hierarchy with 16:9 camera.
 
+### Phase B2 — REA flight-feel readiness (in parallel with first controllable ship)
+Check authorized REA setup on a suitable local agent, with actual binary availability and tool authorization; see `codex/TASK_REA_001.md`. Research observable smooth acceleration, drag, turning and chase-camera lag. Once the first controllable ship is working, compare two original movement presets (responsive vs gliding). **Do not delay visual-scene bootstrap for REA installation** and do not assume Cloud Codex can access a local game binary.
+
 ### Phase C — Actually playable, PC+phone
 Fluid chase flight with keyboard/mouse, gamepad optional, pointer-events touch control: left thumb yaw/pitch, right thrust/boost/scan, optional camera look; simplify roll and provide autolevel for phone. Adapt same scene/camera/controls to 360×800 portrait, 844×390 landscape. Phone gameplay must work without rotate-device wall or external pad. Use independent internal render resolution, not stretched UI. Check pointercancel, blur and orientation switch.
 
@@ -32,4 +35,4 @@ Add two more distinct shader planet types, 7 hex base tiles with simple placemen
 ## Explicit priority
 FIRST visually beautiful and fluid flight, SECOND accessible cross-device gameplay, THIRD more systems. Neither beauty nor mobile play can be deferred to a post-M1 polish pass.
 
-Read linked issue details: #1, #3, #5, #7. PR foundation #2 and graphics strategy #4 may need merging into main. This file currently lives on input branch PR #6; don't start in bare main before the requirements are merged.
+Read linked issue details: #1, #3, #5, #7 and the REA flight-feel study task. PR foundation #2 and graphics strategy #4 may need merging into main. This file currently lives on input branch PR #6; don't start in bare main before the requirements are merged.
