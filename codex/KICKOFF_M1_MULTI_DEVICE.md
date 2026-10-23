@@ -36,3 +36,9 @@ Add two more distinct shader planet types, 7 hex base tiles with simple placemen
 FIRST visually beautiful and fluid flight, SECOND accessible cross-device gameplay, THIRD more systems. Neither beauty nor mobile play can be deferred to a post-M1 polish pass.
 
 Read linked issue details: #1, #3, #5, #7 and the REA flight-feel study task. PR foundation #2 and graphics strategy #4 may need merging into main. This file currently lives on input branch PR #6; don't start in bare main before the requirements are merged.
+
+## UPDATE / HIGH PRIORITY 2026-10-24: NEW LOT AND FLIGHT HANDLING
+- **Target plot: #323 (Medium Tower, 16×16m, 30m)**, subject to SDK verification. *NEVER touch STARBOX lot #696.* No P0 publication until explicit approval. Build plot as compact cosmic entry terminal/gateway, not the whole playable galaxy if experience sessions support independent game space.
+- **Locked controls:** one left stick to steer, **automatic cruise speed**, RT boost, LT brake, camera follows ship with lag; right stick OPTIONAL look, self-recentering upon release. ABZÛ is a visual mood reference, not a control scheme to replicate. Refer to `docs/FLIGHT_CONTROLS_LOCKED.md`.
+- **Existing code ready to wire up:** `src/flight/assisted-flight.mjs` and `tests/assisted-flight.test.mjs`; integrate with `src/input/gamepad.mjs` and `src/input/touch.mjs`. The new flight logic is a first mathematical prototype, NOT playtested in 3D. Tune after real screenshots and hands-on tests.
+- **FIRST playable milestone must be real full-screen PC browser flight** with locked IMG 7 blue/violet atmosphere and one large luminous planet, then same build works mobile both orientations. No requirement to hold two sticks and a trigger continuously.
