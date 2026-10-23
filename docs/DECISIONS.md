@@ -1,32 +1,27 @@
-# Design Decisions — 2026-10-23
+# Design Decisions — 2026-10-23 (updated mobile requirement)
 
-## Approved by creative direction
-- Working title: **The X-plorator**. Humanity escapes a ruined Earth; pilot has limited resources and surviving passengers.
-- **PRIMARY PLATFORM: PC WEB BROWSER**. Project 0 City remains the main publication target. Keyboard/mouse as default, Xbox-style gamepad as supported secondary input. Design desktop-first 16:9 and 10-foot TV UI, with responsive mobile layouts rather than mobile portrait as the primary format.
-- **XBOX GOAL: OPTIONAL** Edge browser compatibility if validated on a physical console. Native Xbox installation, packaging and ID@Xbox publishing are out of scope. Independent family-friendly standalone browser playtest separate from P0 authentication.
-- **LOCKED VISUAL STYLE: owner-approved IMG 7**, ethereal luminous blue-violet cosmic space (not flat black) with cyan rim light, flowing nebula, soft light shafts, deliberate negative space and tiny graceful explorer craft. Earlier images 1-6 are **layout and function examples only**, NOT competing art directions.
-- Full 3D is preferred, with a separately evaluated 2.5D comparison; true free flight and map-based travel/missions; real-time gameplay.
-- Player controls spaceship only: **no on-foot astronaut**.
-- Procedural meshes and soft shader gradients; contemplative original/licensed piano soundscape.
-- Mine diverse resources; modular ship components and larger vessels; fleets in later phase.
-- Hexagonal space bases; many discoverable planets with deterministic visuals, type, resources, deposit amount, size and acquisition price recommendation.
-- First in-game planet free with limited deposits; other planet claim idea 2–20 Attention Tokens, resale to other players (future, only with safe platform support).
-- Optional starting passenger packages concept: free or 2/5/10 ATT; no real purchases in prototype.
-- Online automated logistics; offline production capped by time/storage and outbound transport confirmed on next login.
-- Coop or separately owned empires; player progress persistence and live session multiplayer are desired P0 integrations.
-- No compulsory combat. Optional later hex-board tactical spaceship game, not an M1 goal.
-- Cloud Codex is planned builder; REA research of lawful targets is optional, not a blocker.
+## Confirmed by owner
+- **The X-plorator**, original game about humanity escaping a ruined Earth, seeking Genesis Initiative and rebuilding civilization.
+- **PC web browser is PRIMARY**; **mobile phone browser is REQUIRED AND PLAYABLE**, not just responsive screenshots. Full touch input and layout/camera adaptation in portrait AND landscape are release requirements. Optional Xbox Edge/TV controller support is a later experimental goal.
+- Locked aesthetic: owner-approved **IMG 7** — blue-violet serene space, luminous planets, graceful tiny spaceship. Other reference pictures specify MENU/HANGAR/BASE layouts only.
+- Free roaming in real-time, preferred full 3D flight; 2.5D camera experiment allowed, not approved replacement.
+- Only a spaceship avatar (no walking astronaut). Ship modules, future bigger ships/fleet, resource collection, hex space bases.
+- Planet generation by seed (type, size, visual, resource deposits, claim quote); first starter planet free/limited. ATT planet purchase ideas 2-20 plus future resale ONLY after proven authoritative P0 purchase/ownership APIs.
+- Starting passengers free or optional 2/5/10 ATT design idea; no payments in prototype; free path remains viable.
+- Automatic online mining/logistics, capped offline production and manual shipment approval on reconnect; shared and independent multiplayer progression desired.
+- No compulsory PvP; relaxed co-op, discovery, missions (SOS, scan, deliver). Lawfully researched movement mechanics via REA optional.
 
-## Proposed / awaiting balancing
-- Genesis Initiative goals and post-game; fictional space-program founder; warp jumps between explorable sectors; SOS rescue/repair/science missions.
-- Flight chase camera plus isometric hex build camera; initial 8h offline cap; planetary transport network; fair no-purchase route to finishing Genesis.
-- **Family co-op** standalone PC browser on TV with 2 controllers (shared or asymmetric roles) first; later standalone multi-device play if networking implemented. This is separate from Project 0 sessions/ATT.
+## Next engineering decision
+One game core and procedural render system across PC, phone and optional TV — input/camera/HUD presets per platform. **Do not fork separate mobile game logic** or reduce portrait mode to a static menu.
 
-## Explicitly out of scope for now
-- Astronaut walking gameplay, mandatory PvP, turn-based main game, fleet warfare, real payments, server economy, live deployment, attempting all features in one agent prompt, native Xbox store publishing or claiming the Xbox Edge controller works without testing.
+## Further design ideas / not yet locked
+Warp between sectors, initial 8h offline cap, endgame balancing, standalone local couch-coop, possible optional tactical hex combat. Xbox-native distribution postponed.
 
-## Age / account constraints
-Project 0's current Terms of Service say users must be **16+** and only one account per person (https://project0.city/terms). Family play with a younger child is therefore through a separate age-appropriate standalone build, not a P0 account.
+## P0 and family
+Project 0 terms currently require age 16+ and one account/person. Child co-creator playtesting uses an age-appropriate standalone version outside Project 0, without purchases/chat. P0 publication for eligible audience remains separate.
 
-## Critical open questions
-Official P0 game packaging, persistent player API/quotas, relay/multiplayer authority, planet ownership transaction atomicity, verified ATT purchase receipts and refund flow, Xbox Edge controller conflicts (browser steals some input buttons), Xbox WebGL/performance and P0 iframe restrictions, soundtrack licensing and final economic balance.
+## Not in the first slice
+Real ATT checkout, shared planet trading, native Xbox, mandatory combat, on-foot avatar, large online economy, full fleet or live P0 publishing.
+
+## Known tech risks
+Official P0 SDK render/input/save/relay/asset bundling not yet audited, platform sandbox gamepad/touch compatibility, mobile GPU shader cost and thermal limits, responsive UI/camera, access and permissions.
