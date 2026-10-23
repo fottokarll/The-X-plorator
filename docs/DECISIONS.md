@@ -1,25 +1,33 @@
-# Design Decisions — 2026-10-23
+# Design Decisions — 2026-10-23 (updated mobile requirement)
 
-## Approved by creative direction
-- Working title: **The X-plorator**. Humanity escapes a ruined Earth; pilot has limited resources and surviving passengers.
-- Full 3D is preferred, with a separately evaluated 2.5D comparison; true free flight and map-based travel/missions; real-time gameplay.
-- Player controls spaceship only: **no on-foot astronaut**.
-- Low-poly geometric illustration, procedural meshes and soft shader gradients; contemplative soundscape with piano.
-- Mine diverse resources; modular ship components and larger vessels; fleets in later phase.
-- Hexagonal space bases; many discoverable planets with deterministic visuals, type, resources, deposit amount, size and acquisition price recommendation.
-- First in-game planet free with limited deposits; other planet claim idea 2–20 Attention Tokens, resale to other players (future, only with safe platform support).
-- Optional starting passenger packages concept: free or 2/5/10 ATT; no real purchases in prototype.
-- Online automated logistics; offline production capped by time/storage and outbound transport confirmed on next login.
-- Coop or separately owned empires; player progress persistence and live session multiplayer are desired P0 integrations.
-- No compulsory combat. Optional later hex-board tactical spaceship game, not an M1 goal.
-- Cloud Codex is planned builder; REA research of lawful targets is optional, not a blocker.
+## Confirmed by owner
+- **The X-plorator**, original game about humanity escaping a ruined Earth, seeking Genesis Initiative and rebuilding civilization.
+- **PC web browser is PRIMARY**; **mobile phone browser is REQUIRED AND PLAYABLE**, not just responsive screenshots. Full touch input and layout/camera adaptation in portrait AND landscape are release requirements. Optional Xbox Edge/TV controller support is a later experimental goal.
+- Locked aesthetic: owner-approved **IMG 7** — blue-violet serene space, luminous planets, graceful tiny spaceship. Other reference pictures specify MENU/HANGAR/BASE layouts only.
+- Free roaming in real-time, preferred full 3D flight; 2.5D camera experiment allowed, not approved replacement.
+- Only a spaceship avatar (no walking astronaut). Ship modules, future bigger ships/fleet, resource collection, hex space bases.
+- Planet generation by seed (type, size, visual, resource deposits, claim quote); first starter planet free/limited. ATT planet purchase ideas 2-20 plus future resale ONLY after proven authoritative P0 purchase/ownership APIs.
+- Starting passengers free or optional 2/5/10 ATT design idea; no payments in prototype; free path remains viable.
+- Automatic online mining/logistics, capped offline production and manual shipment approval on reconnect; shared and independent multiplayer progression desired.
+- No compulsory PvP; relaxed co-op, discovery, missions (SOS, scan, deliver). Lawfully researched movement mechanics via REA optional.
 
-## Proposed / awaiting balancing
-- Genesis Initiative goals and post-game; fictional space-program founder; warp jumps between explorable sectors; SOS rescue/repair/science missions.
-- Flight chase camera plus isometric hex build camera; initial 8h offline cap; planetary transport network; fair no-purchase route to finishing Genesis.
+## Next engineering decision
+One game core and procedural render system across PC, phone and optional TV — input/camera/HUD presets per platform. **Do not fork separate mobile game logic** or reduce portrait mode to a static menu.
 
-## Explicitly out of scope for now
-- Astronaut walking gameplay, mandatory PvP, turn-based main game, fleet warfare, real payments, server economy, live deployment, attempting all features in one agent prompt.
+## Further design ideas / not yet locked
+Warp between sectors, initial 8h offline cap, endgame balancing, standalone local couch-coop, possible optional tactical hex combat. Xbox-native distribution postponed.
 
-## Critical open questions
-Official P0 game packaging, persistent player API/quotas, relay/multiplayer authority, planet ownership transaction atomicity, verified ATT purchase receipts and refund flow, performance budgets for mobile browsers, soundtrack licensing, final economic balance.
+## P0 and family
+Project 0 terms currently require age 16+ and one account/person. Child co-creator playtesting uses an age-appropriate standalone version outside Project 0, without purchases/chat. P0 publication for eligible audience remains separate.
+
+## Not in the first slice
+Real ATT checkout, shared planet trading, native Xbox, mandatory combat, on-foot avatar, large online economy, full fleet or live P0 publishing.
+
+## Known tech risks
+Official P0 SDK render/input/save/relay/asset bundling not yet audited, platform sandbox gamepad/touch compatibility, mobile GPU shader cost and thermal limits, responsive UI/camera, access and permissions.
+
+## Update 2026-10-24 — launch lot and simplified controls
+- **New Project 0 plot: lot #323, Medium Tower 16×16m, 30m** (owner screenshot; 6 ATT purchase). Purpose: The X-plorator launch portal / beacon, pending verified P0 API and explicit publishing review. **STARBOX lot #696 remains untouched.** Full game-space extent inside an experience still unverified.
+- **ONE-STICK assisted flight is now the primary control design.** Left stick steers yaw/pitch, auto-cruise provides forward momentum without continuously holding RT; LT brakes; RT or RB boosts; camera follows automatically. Right stick is OPTIONAL look, gently recentering on release. Keyboard and touch maps share this handling.
+- ABZÛ references **visual atmosphere first**; its mandatory two-stick plus RT input is explicitly rejected. REA remains a lawful, optional research tool for flight smoothing rather than a reason to copy ABZÛ control bindings.
+- See `docs/FLIGHT_CONTROLS_LOCKED.md` and `docs/P0_LOT_323.md`.
