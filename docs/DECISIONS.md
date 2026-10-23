@@ -25,3 +25,9 @@ Real ATT checkout, shared planet trading, native Xbox, mandatory combat, on-foot
 
 ## Known tech risks
 Official P0 SDK render/input/save/relay/asset bundling not yet audited, platform sandbox gamepad/touch compatibility, mobile GPU shader cost and thermal limits, responsive UI/camera, access and permissions.
+
+## Update 2026-10-24 — launch lot and simplified controls
+- **New Project 0 plot: lot #323, Medium Tower 16×16m, 30m** (owner screenshot; 6 ATT purchase). Purpose: The X-plorator launch portal / beacon, pending verified P0 API and explicit publishing review. **STARBOX lot #696 remains untouched.** Full game-space extent inside an experience still unverified.
+- **ONE-STICK assisted flight is now the primary control design.** Left stick steers yaw/pitch, auto-cruise provides forward momentum without continuously holding RT; LT brakes; RT or RB boosts; camera follows automatically. Right stick is OPTIONAL look, gently recentering on release. Keyboard and touch maps share this handling.
+- ABZÛ references **visual atmosphere first**; its mandatory two-stick plus RT input is explicitly rejected. REA remains a lawful, optional research tool for flight smoothing rather than a reason to copy ABZÛ control bindings.
+- See `docs/FLIGHT_CONTROLS_LOCKED.md` and `docs/P0_LOT_323.md`.
