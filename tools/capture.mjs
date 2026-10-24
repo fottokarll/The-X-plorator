@@ -2,7 +2,7 @@
 /**
  * Drives the standalone game in Chromium and captures REAL screenshots.
  * Usage:
- *   node tools/capture.mjs --size 1920x1080 --out docs/media/m1 [--fresh] [--touch] [--headless]
+ *   node tools/capture.mjs --size 1920x1080 --out docs/media/m1 [--fresh] [--touch] [--headless] [--jpeg]
  *     --steps "wait:3000;shot:menu;click:new;wait:500;key:Space:200;shot:select"
  * Steps (separated by ';'):
  *   wait:MS             sleep
@@ -100,7 +100,8 @@ for (const step of steps) {
         p0.input.pad = true;
       }, arg);
     } else if (cmd === 'shot') {
-      await page.screenshot({ path: path.join(out, `${arg}.png`) });
+      if (has('jpeg')) await page.screenshot({ path: path.join(out, `${arg}.jpg`), type: 'jpeg', quality: 86 });
+      else await page.screenshot({ path: path.join(out, `${arg}.png`) });
     } else if (cmd === 'evalfile') {
       const r = await page.evaluate(fs.readFileSync(arg, 'utf8'));
       report.steps.push(`=> ${JSON.stringify(r)}`);

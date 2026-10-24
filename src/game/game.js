@@ -442,11 +442,34 @@ export async function createGame(p0) {
 
   // ------------------------------------------------------------- camera per mode
   const flatCam = { yaw: 0, pitch: 0 };
+  const attractCam = { pos: new THREE.Vector3(), aim: new THREE.Vector3(), init: false };
   function updateCamera(dt) {
     const v = viewport();
     const info = viewInfo(v.w, v.h);
     if (mode === 'hangar') return;
     if (mode === 'base') return;
+    if (mode === 'attract') {
+      // Menu: a slow cinematic view that always faces the planet (IMG 01 framing:
+      // menu on the left, world on the right) while the ship drifts across.
+      camera.fov = info.portrait ? 62 : 48;
+      camera.aspect = v.w / v.h;
+      camera.updateProjectionMatrix();
+      const ship = v3(flight.position);
+      const toPlanet = world.planetCenter.clone().sub(ship).normalize();
+      const side = new THREE.Vector3().crossVectors(toPlanet, new THREE.Vector3(0, 1, 0)).normalize();
+      // Aim up and to the left of the planet so it fills the lower right (side = screen right).
+      const aimDir = toPlanet.clone().add(new THREE.Vector3(0, info.portrait ? 0.55 : 0.62, 0)).addScaledVector(side, info.portrait ? -0.2 : -0.5).normalize();
+      const wantAim = ship.clone().addScaledVector(aimDir, 60);
+      const wantPos = ship.clone().addScaledVector(aimDir, -58).addScaledVector(side, info.portrait ? 0 : -22).add(new THREE.Vector3(0, 7, 0));
+      if (!attractCam.init) { attractCam.pos.copy(wantPos); attractCam.aim.copy(wantAim); attractCam.init = true; }
+      attractCam.pos.lerp(wantPos, 1 - Math.exp(-dt * 0.8));
+      attractCam.aim.lerp(wantAim, 1 - Math.exp(-dt * 1.2));
+      camWorld.copy(attractCam.pos);
+      camera.position.copy(anchor);
+      camera.lookAt(anchor.clone().add(attractCam.aim.clone().sub(attractCam.pos)));
+      camera.updateMatrixWorld();
+      return;
+    }
     if (mode === 'select') {
       // Stationary view from the station toward the planet, ships in front.
       camera.fov = info.portrait ? 60 : 46;
