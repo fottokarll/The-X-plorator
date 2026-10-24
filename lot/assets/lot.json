@@ -1,0 +1,9 @@
+{
+  "materials": {
+    "Neon": { "surface": "neon.glsl", "uniforms": { "pulse": 0 }, "glow": 1.6 },
+    "Accent": { "surface": "accent.glsl", "uniforms": { "pulse": 0 }, "glow": 1.2 },
+    "Body": { "surface": "body.glsl", "glow": 0 },
+    "Hull": { "glow": 0 }
+  },
+  "script": "build.js"
+}
