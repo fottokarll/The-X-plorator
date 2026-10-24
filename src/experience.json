@@ -1,0 +1,19 @@
+{
+  "entry": "main.js",
+  "name": "THE X-PLORATOR",
+  "description": "A serene cosmic exploration game. Fly a small white explorer through the blue-violet Outer Verge beneath a giant luminous planet: scan crystal asteroids, collect Cryon and Ferrite, return to Haven Outpost, upgrade your ship's modules in the hangar and grow a hexagonal orbital base. One-stick flight with auto-cruise, keyboard, controller and touch. M1 prototype.",
+  "maxPlayers": 8,
+  "ui": "minimized",
+  "stick": false,
+  "loading": {
+    "background": "#071631",
+    "accent": "#70E2F4",
+    "text": "#E6F6FD"
+  },
+  "credits": [
+    {
+      "work": "THE X-PLORATOR game code, procedural ship, planet, sky, station and interface",
+      "by": "Original work created for THE X-PLORATOR, all geometry and shaders generated in code"
+    }
+  ]
+}

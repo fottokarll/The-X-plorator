@@ -27,6 +27,8 @@ export function stepFlight(s,input={},dt=1/60,p=DEFAULT_FLIGHT_PROFILE){
  s.pitchInput=ease(s.pitchInput,pitch,p.turnSmoothing,d);
  s.yaw=wrap(s.yaw+s.yawInput*p.yawRate*d);
  s.pitch=cap(s.pitch+s.pitchInput*p.pitchRate*d,-p.maxPitch,p.maxPitch);
+ // Optional gentle stabilisation: with the stick released the nose drifts level.
+ if(p.autoLevel&&Math.abs(pitch)<.05)s.pitch=ease(s.pitch,0,p.autoLevel,d);
  s.bank=ease(s.bank,-s.yawInput*p.autoBank,p.bankSmoothing,d);
  const brake=cap(fin(input.brake),0,1),thrust=cap(fin(input.thrust),0,1);
  let target=s.cruiseEnabled?p.cruiseSpeed:0;
