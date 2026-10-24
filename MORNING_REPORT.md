@@ -169,8 +169,12 @@ All images below are screenshots of the running game, captured by `tools/capture
   open; their commits are included.
 - **Draft Pull Request: https://github.com/fottokarll/The-X-plorator/pull/9**
 - **Commits** (newest first):
+  - `922cc99` final screenshots regenerated from the final build
+  - `7cb048e` lighter software-renderer path for Project 0's review
+  - `01c94bc` final validation recorded
+  - `f2f60ea` gentle obstacle-avoidance assist, docking readout
   - `8a5e5e9` confirm guard after screen changes; controller verified in the dev kit
-  - (later commits: obstacle-avoidance assist and docking readout; see `git log`)
+  - `c6bdce7` this report
   - `ca7aeab` final real-render screenshots, loop and dev kit evidence
   - `1d86270` original synthesised ambient music and action cues
   - `3bc32aa` camera framing by largest projected extent, docs
