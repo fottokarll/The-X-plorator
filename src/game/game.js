@@ -183,7 +183,11 @@ export async function createGame(p0) {
       yaw = THREE.MathUtils.lerp(yaw, clamp(wrap(desiredYaw - flight.yaw) * 2, -1, 1), k);
       pitch = THREE.MathUtils.lerp(pitch, clamp((desiredPitch - flight.pitch) * 2, -1, 1), k);
     }
-    const brake = Math.max(inp.brake, mining ? 0.75 : 0);
+    // Gentle avoidance: steer softly around rocks and station parts ahead.
+    const avoid = avoidance(pos);
+    yaw = clamp(yaw + avoid.yaw, -1, 1);
+    pitch = clamp(pitch + avoid.pitch, -1, 1);
+    const brake = Math.max(inp.brake, mining ? 0.75 : 0, avoid.brake);
     flight.cruiseEnabled = profile.settings.autoCruise;
     let remaining = dt;
     while (remaining > 1e-6) {
@@ -194,6 +198,33 @@ export async function createGame(p0) {
     collide();
     applyShipTransform();
     interactions(dt);
+  }
+
+  const fwdV = new THREE.Vector3(), rightV = new THREE.Vector3(), upV = new THREE.Vector3(), relV = new THREE.Vector3();
+  function avoidance(pos) {
+    const cp = Math.cos(flight.pitch);
+    fwdV.set(Math.sin(flight.yaw) * cp, Math.sin(flight.pitch), Math.cos(flight.yaw) * cp);
+    rightV.crossVectors(fwdV, upV.set(0, 1, 0)).normalize();
+    upV.crossVectors(rightV, fwdV).normalize();
+    const look = 18 + flight.speed * 1.6;
+    const shipR = world.ship.radius;
+    let sx = 0, sy = 0, brake = 0;
+    for (const o of obstacles) {
+      relV.subVectors(o.position, pos);
+      const along = relV.dot(fwdV);
+      if (along <= 0 || along > look + o.radius) continue;
+      relV.addScaledVector(fwdV, -along); // perpendicular offset of the obstacle from the path
+      const lateral = relV.length();
+      const clearance = o.radius + shipR + 4;
+      if (lateral >= clearance) continue;
+      const urgency = (1 - along / (look + o.radius)) * (1 - lateral / clearance);
+      const ax = lateral > 1e-3 ? -relV.dot(rightV) / lateral : 1;
+      const ay = lateral > 1e-3 ? -relV.dot(upV) / lateral : 0.3;
+      sx += ax * urgency; sy += ay * urgency;
+      if (along < o.radius + 10) brake = Math.max(brake, urgency * 0.6);
+    }
+    // Positive yaw input turns toward +x (screen-left): 'right' maps to negative yaw.
+    return { yaw: clamp(-sx * 2.4, -0.9, 0.9), pitch: clamp(sy * 2.4, -0.9, 0.9), brake };
   }
 
   function collide() {
@@ -357,7 +388,8 @@ export async function createGame(p0) {
     const prevPos = v3(flight.position);
     flight.position = { x: p.x, y: p.y, z: p.z };
     const vel = p.clone().sub(prevPos);
-    flight.speed = vel.length() / Math.max(dt, 1e-3);
+    // Readout: the glide's approach speed, never above cruise.
+    flight.speed = Math.min(vel.length() / Math.max(dt, 1e-3), flightProfile.cruiseSpeed);
     world.shipRoot.position.copy(p);
     world.shipRoot.quaternion.slerpQuaternions(docking.fromQuat, new THREE.Quaternion(), e);
     world.shipRoot.updateMatrix();

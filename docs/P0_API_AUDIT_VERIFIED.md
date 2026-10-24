@@ -84,6 +84,9 @@ Lot #696 (STARBOX) was listed in the same response and was **not touched**.
   real touch). There is **no pointer id**, as the STARBOX team also found; our contact tracker
   matches fingers by their previous endpoint `(x - dx, y - dy)`. Two simultaneous fingers (stick +
   Boost) worked in the dev kit.
+- A simulated standard gamepad (`devkit.pad`) reaches the game through `p0.input.gamepad`
+  (17 button values, 4 axes, `p0.input.pad` true); in the dev kit it pressed no keys. D-pad + A
+  menus, stick + RT flight, X scan and Start pause were verified.
 - The city toolbar sits across the top centre on desktop and **the full width on phones**; the HUD
   keeps that band clear (`view.p0Top = 58`).
 - The dev kit loads only the entry module, so `experience.json` keys (`stick:false`, `ui`) are not

@@ -154,6 +154,7 @@ All images below are screenshots of the running game, captured by `tools/capture
 | Official Project 0 dev kit, desktop | started, **0 errors**, `p0.save` works |
 | Dev kit `devkit.review(14)` (the review's 640×360 and simulated keys), desktop with 2 players and phone | **14 s at 59.4 fps**, worst frame 27.6-30.6 ms, 0 errors |
 | Dev kit touch (real CDP touch, phone view): menus by tap, **two fingers at once** (stick + Boost), pause | **works**. P0 pointer events are `t,k,x,y,dx,dy,buttons,button,touch` with no pointer id |
+| Dev kit controller (`tools/devkit-pad.mjs`, simulated standard gamepad): d-pad + A menus, left stick + RT, X scan, Start pause | **works** (two consecutive runs, 0 errors) |
 | Project 0 **server validation**, experience package (lot 323) | **HTTP 200, ok, 0 errors, 0 warnings** (candidate `0f5893a94559ad70`) |
 | Project 0 **server validation**, street build LOD0/1/2 (lot 323) | **HTTP 200, ok, 0 errors, 0 warnings** |
 | Local package rule checks (`npm run package`) | OK (44 files, 305 KB JS, 1.3 MB zip) |
@@ -167,6 +168,8 @@ All images below are screenshots of the running game, captured by `tools/capture
   open; their commits are included.
 - **Draft Pull Request: https://github.com/fottokarll/The-X-plorator/pull/9**
 - **Commits** (newest first):
+  - `8a5e5e9` confirm guard after screen changes; controller verified in the dev kit
+  - (later commits: obstacle-avoidance assist and docking readout; see `git log`)
   - `ca7aeab` final real-render screenshots, loop and dev kit evidence
   - `1d86270` original synthesised ambient music and action cues
   - `3bc32aa` camera framing by largest projected extent, docs
@@ -204,10 +207,9 @@ Verified API notes and observations: [docs/P0_API_AUDIT_VERIFIED.md](docs/P0_API
 - The dev kit loads only `main.js`, so `experience.json`'s `"stick": false` (hide the city's touch
   stick) and `"ui": "minimized"` are only confirmed after a real publish. The dev kit shows the
   city's stick over our controls.
-- **Collisions** are simple sphere pushes. The automated pilot sometimes snags on rock clusters
-  near crystals. Human steering is fine, but tight spots can feel sticky.
-- **Docking** is an automatic glide onto the pad, not a manual landing. The speed readout shows a
-  high number during that glide.
+- **Collisions** are simple sphere pushes, softened by a gentle avoidance assist that steers around
+  rocks ahead. The automated test pilot still circles at times near clusters.
+- **Docking** is an automatic glide onto the pad, not a manual landing.
 - **Galaxy map**: only the Outer Verge is open. Other sectors are previews and there is no travel
   yet.
 - **Base modules** are mostly visual, apart from the Scanner Array bonus. Refining is planned for
