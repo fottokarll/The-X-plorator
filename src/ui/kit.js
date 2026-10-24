@@ -20,6 +20,10 @@ export const COLORS = Object.freeze({
   ok: '#8CF5C8',
 });
 
+// Light version (software renderers): canvas shadows and big gradients are
+// skipped, they are slow to rasterise there and add little at that size.
+export const UI_FX = { shadows: true };
+
 export const FONT = '"Exo 2", "Rajdhani", "Segoe UI", Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif';
 
 /** Layout context from the viewport (CSS px). */
@@ -44,7 +48,7 @@ export function text(ctx, str, x, y, { size = 14, weight = 400, color = COLORS.t
   ctx.textBaseline = baseline;
   ctx.fillStyle = color;
   ctx.globalAlpha = alpha;
-  if (shadow) { ctx.shadowColor = 'rgba(2,8,26,0.85)'; ctx.shadowBlur = 8; }
+  if (shadow && UI_FX.shadows) { ctx.shadowColor = 'rgba(2,8,26,0.85)'; ctx.shadowBlur = 8; }
   let width;
   if (!tracking) {
     width = ctx.measureText(str).width;
@@ -105,7 +109,7 @@ export function roundRect(ctx, x, y, w, h, r) {
 
 export function panel(ctx, x, y, w, h, { r = 14, fill = COLORS.glass, stroke = COLORS.line, glow = 0, highlight = true } = {}) {
   ctx.save();
-  if (glow) { ctx.shadowColor = 'rgba(112,226,244,0.55)'; ctx.shadowBlur = glow; }
+  if (glow && UI_FX.shadows) { ctx.shadowColor = 'rgba(112,226,244,0.55)'; ctx.shadowBlur = glow; }
   roundRect(ctx, x, y, w, h, r);
   ctx.fillStyle = fill;
   ctx.fill();
@@ -266,13 +270,13 @@ export function button(ctx, reg, id, x, y, w, h, label, { state = {}, primary = 
     const g = ctx.createLinearGradient(x, y, x + w, y + h);
     g.addColorStop(0, 'rgba(112,226,244,0.95)');
     g.addColorStop(1, 'rgba(110,150,255,0.92)');
-    if (focused || hovered) { ctx.shadowColor = 'rgba(112,226,244,0.8)'; ctx.shadowBlur = 18 * u; }
+    if ((focused || hovered) && UI_FX.shadows) { ctx.shadowColor = 'rgba(112,226,244,0.8)'; ctx.shadowBlur = 18 * u; }
     roundRect(ctx, x, y, w, h, r);
     ctx.fillStyle = g;
     ctx.fill();
     ctx.shadowBlur = 0;
   } else {
-    if (focused || hovered) { ctx.shadowColor = 'rgba(112,226,244,0.45)'; ctx.shadowBlur = 14 * u; }
+    if ((focused || hovered) && UI_FX.shadows) { ctx.shadowColor = 'rgba(112,226,244,0.45)'; ctx.shadowBlur = 14 * u; }
     roundRect(ctx, x, y, w, h, r);
     ctx.fillStyle = pressed ? 'rgba(40,90,150,0.75)' : focused || hovered ? 'rgba(24,52,104,0.82)' : 'rgba(9,22,56,0.66)';
     ctx.fill();
@@ -303,7 +307,7 @@ export function roundButton(ctx, reg, id, cx, cy, radius, ic, label, { state = {
   ctx.beginPath();
   ctx.arc(cx, cy, radius, 0, Math.PI * 2);
   ctx.fillStyle = pressed ? 'rgba(60,140,200,0.55)' : 'rgba(8,22,58,0.55)';
-  if (focused || hovered || pressed) { ctx.shadowColor = 'rgba(112,226,244,0.7)'; ctx.shadowBlur = 16 * u; }
+  if ((focused || hovered || pressed) && UI_FX.shadows) { ctx.shadowColor = 'rgba(112,226,244,0.7)'; ctx.shadowBlur = 16 * u; }
   ctx.fill();
   ctx.shadowBlur = 0;
   ctx.strokeStyle = !enabled ? 'rgba(140,170,210,0.25)' : pressed || focused ? accent : 'rgba(150,215,250,0.6)';
@@ -320,6 +324,7 @@ export function roundButton(ctx, reg, id, cx, cy, radius, ic, label, { state = {
 }
 
 export function vignette(ctx, w, h, strength = 0.55) {
+  if (!UI_FX.shadows) return;
   const g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.hypot(w, h) * 0.62);
   g.addColorStop(0, 'rgba(3,8,26,0)');
   g.addColorStop(1, `rgba(3,8,26,${strength})`);
@@ -337,7 +342,7 @@ export function title(ctx, x, y, size, { align = 'left', u = 1, glow = true } = 
   let cx = align === 'center' ? x - total / 2 : align === 'right' ? x - total : x;
   parts.forEach(([s, c], i) => {
     const big = s === 'X';
-    if (glow && big) { ctx.shadowColor = 'rgba(112,226,244,0.9)'; ctx.shadowBlur = 18 * u; }
+    if (glow && big && UI_FX.shadows) { ctx.shadowColor = 'rgba(112,226,244,0.9)'; ctx.shadowBlur = 18 * u; }
     text(ctx, s, cx, y, { size: big ? size * 1.18 : size, weight: big ? 400 : 300, color: c, tracking });
     ctx.shadowBlur = 0;
     cx += widths[i];

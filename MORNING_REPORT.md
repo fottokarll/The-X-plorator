@@ -155,7 +155,8 @@ All images below are screenshots of the running game, captured by `tools/capture
 | Dev kit `devkit.review(14)` (the review's 640×360 and simulated keys), desktop with 2 players and phone | **14 s at 59.4 fps**, worst frame 27.6-30.6 ms, 0 errors |
 | Dev kit touch (real CDP touch, phone view): menus by tap, **two fingers at once** (stick + Boost), pause | **works**. P0 pointer events are `t,k,x,y,dx,dy,buttons,button,touch` with no pointer id |
 | Dev kit controller (`tools/devkit-pad.mjs`, simulated standard gamepad): d-pad + A menus, left stick + RT, X scan, Start pause | **works** (two consecutive runs, 0 errors) |
-| Project 0 **server validation**, experience package (lot 323), final commit | **HTTP 200, ok, 0 errors, 0 warnings** (candidate `1e6872511b494c7c`) |
+| Project 0 **server validation**, experience package (lot 323), final commit | **HTTP 200, ok, 0 errors, 0 warnings** (candidate `2ad35ac72d7916ec`) |
+| Dev kit review on a **software renderer** (headless Chromium + SwiftShader, the kind of renderer Project 0's review uses), 640×360 | starts in about 9-13 s on the light version (detected automatically), runs the 14 s review at **6.2-6.5 fps with 0 errors**; a few 2.5-4 s frames remain in the first seconds (see Known issues) |
 | Project 0 **server validation**, street build LOD0/1/2 (lot 323) | **HTTP 200, ok, 0 errors, 0 warnings** |
 | Local package rule checks (`npm run package`) | OK (44 files, 305 KB JS, 1.3 MB zip) |
 | Frame rate, active flight, standalone GPU Chromium on this PC (Intel HD Graphics 6000) | 1920×1080 High **51.2 fps** (p95 33 ms) · 1280×720 High **53.9 fps** · 390×844 phone emulation Medium **60.1 fps** |
@@ -201,9 +202,18 @@ Verified API notes and observations: [docs/P0_API_AUDIT_VERIFIED.md](docs/P0_API
 
 ## Known issues (honest)
 
-- **Not yet tried on real hardware**: no physical phone, no Xbox, and no measurement under Project
-  0's software renderer (only the GPU dev kit review profile). Frame rates above come from this
-  PC's older Intel GPU.
+- **Not yet tried on real hardware**: no physical phone and no Xbox. Frame rates above come from
+  this PC's older Intel GPU.
+- **Software renderer (Project 0's review):** tonight's work made the light version much lighter.
+  - Shaders warm up one material at a time.
+  - A cheaper "lite" noise path is used.
+  - The ring, atmosphere halo and god rays are skipped, and the render scale is smaller.
+  - Canvas shadows are skipped, and every screen and sound is pre-warmed.
+
+  The review profile went from about 3 fps with 5-7 s frames to about 6 fps with 2.5-4 s frames,
+  always 0 errors. The remaining spikes happen in the first seconds and look like first-use pipeline
+  compilation inside SwiftShader on this 4-core PC. The games guide says such a game still goes
+  live, possibly with a "very heavy" warning.
 - The dev kit loads only `main.js`, so `experience.json`'s `"stick": false` (hide the city's touch
   stick) and `"ui": "minimized"` are only confirmed after a real publish. The dev kit shows the
   city's stick over our controls.

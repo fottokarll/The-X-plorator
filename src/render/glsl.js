@@ -18,6 +18,22 @@ vec3 xpHash33(vec3 p) {
 }
 float xpHash13(vec3 p) { return xpHash33(p).x; }
 
+#ifdef XP_LITE
+// Light version (software renderers, low quality): value noise with one short
+// integer hash per corner, about four times less code to compile and to run.
+uint xpH(uint x) { x ^= x >> 16; x *= 0x7feb352du; x ^= x >> 15; x *= 0x846ca68bu; x ^= x >> 16; return x; }
+float xpCorner(vec3 c) { uvec3 u = uvec3(ivec3(c) + 32768); return float(xpH(u.x + xpH(u.y + xpH(u.z)))) * (2.0 / 4294967295.0) - 1.0; }
+float xpNoise(vec3 p) {
+  vec3 i = floor(p);
+  vec3 f = fract(p);
+  vec3 u = f * f * (3.0 - 2.0 * f);
+  float a = mix(xpCorner(i), xpCorner(i + vec3(1, 0, 0)), u.x);
+  float b = mix(xpCorner(i + vec3(0, 1, 0)), xpCorner(i + vec3(1, 1, 0)), u.x);
+  float c = mix(xpCorner(i + vec3(0, 0, 1)), xpCorner(i + vec3(1, 0, 1)), u.x);
+  float d = mix(xpCorner(i + vec3(0, 1, 1)), xpCorner(i + vec3(1, 1, 1)), u.x);
+  return mix(mix(a, b, u.y), mix(c, d, u.y), u.z);
+}
+#else
 // Gradient noise in roughly [-1, 1].
 float xpNoise(vec3 p) {
   vec3 i = floor(p);
@@ -35,6 +51,7 @@ float xpNoise(vec3 p) {
   float nx01 = mix(n001, n101, u.x), nx11 = mix(n011, n111, u.x);
   return 1.6 * mix(mix(nx00, nx10, u.y), mix(nx01, nx11, u.y), u.z);
 }
+#endif
 
 #ifndef XP_OCTAVES
 #define XP_OCTAVES 5

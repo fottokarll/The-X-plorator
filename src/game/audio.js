@@ -33,6 +33,12 @@ export function createAudio(p0) {
       safe(() => p0.music.play(MUSIC, { volume: 0.32, loop: true }));
       musicOn = true;
     },
+    // Plays every effect once at volume 0, so each file is fetched and decoded
+    // before it is first needed (no hitch on the first scan or launch).
+    preload() {
+      if (!p0.sound) return;
+      for (const file of Object.values(FILES)) safe(() => p0.sound.play(file, { volume: 0 }));
+    },
     play(name, now = 0) {
       if (!effects || !FILES[name] || !p0.sound) return;
       if (now - (last.get(name) ?? -9) < 0.12) return;

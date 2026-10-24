@@ -16,7 +16,7 @@ import { createFxLayer } from '../render/fx.js';
 import { createAudio } from './audio.js';
 import { createOverlay } from '../ui/overlay.js';
 import { createUi } from '../ui/ui.js';
-import { viewInfo } from '../ui/kit.js';
+import { viewInfo, UI_FX } from '../ui/kit.js';
 import { createHud } from '../ui/hud.js';
 import { registerScreens } from '../ui/screens.js';
 import { createHangarScreen } from '../ui/hangar.js';
@@ -73,12 +73,19 @@ export async function createGame(p0) {
 
   // ------------------------------------------------------------- world
   loading(0.12, 'painting the nebula');
+  const bootT0 = performance.now();
   const layout = buildSectorLayout();
   const world = createWorld({
     renderer, scene, quality: QUALITY[qualityName], layout,
     baseTiles: profile.base, powered: profile.powered, vessel: profile.vessel, loadout: profile.equipped,
   });
+  const bootWorldMs = performance.now() - bootT0;
   for (const [id, n] of Object.entries(profile.nodes)) world.field.setNodeAmount(id, n.amount);
+  // Software renderers (e.g. Project 0's review): drop the costliest large
+  // translucent layers; the composition still reads as the same scene.
+  if (soft.software) {
+    world.planet.group.children.forEach(c => { if (c.name === 'PlanetRing' || c.name === 'PlanetAtmosphere') c.visible = false; });
+  }
   const fx = createFxLayer();
   world.universe.add(fx.group);
   loading(0.5, 'assembling Haven Outpost');
@@ -86,9 +93,14 @@ export async function createGame(p0) {
   const overlay = createOverlay();
   const pipeline = createPipeline({ renderer, scene, camera, overlay });
   pipeline.setQuality(qualityName);
+  if (soft.software) pipeline.setSoftwareScale(0.72);
   const camRig = createCinematicCamera(camera);
   const audio = createAudio(p0);
-  const ui = createUi({ overlay, onActivate: () => audio.play('ui', game.time) });
+  const ui = createUi({
+    overlay,
+    onActivate: () => audio.play('ui', game.time),
+    onScreen: id => p0.log?.(`[xplorator] screen ${id} at ${game.time.toFixed(1)} s`),
+  });
 
   const input = createInputHub({
     getKeys: () => p0.input?.keys ?? new Set(),
@@ -820,10 +832,11 @@ export async function createGame(p0) {
       input.setOptions({ invert: profile.settings.invertY, sens: profile.settings.sensitivity });
       camRig.setBaseZoom(profile.settings.cameraZoom);
       audio.configure({ sound: profile.settings.sound, musicEnabled: profile.settings.music });
+  audio.preload();
       applyStats();
       if (!changed || changed === 'quality') {
         const next = resolveQuality(profile.settings.quality);
-        if (next !== qualityName) { qualityName = next; pipeline.setQuality(qualityName); resize(true); }
+        if (next !== qualityName) { qualityName = next; UI_FX.shadows = next !== 'low'; pipeline.setQuality(qualityName); resize(true); }
       }
     },
     resetProgress() {
@@ -922,18 +935,35 @@ export async function createGame(p0) {
   // Build the four vessel previews now, so the selection screen opens without a stall.
   for (const v of VESSELS) showroomShip(`select-${v.id}`, v.id, undefined).ship.group.visible = true;
   fx.prepare();
-  const warmMs = await pipeline.warmUp();
+  UI_FX.shadows = qualityName !== 'low';
+  const warm = await pipeline.warmUp(f => loading(0.75 + 0.15 * f, 'warming the engines'));
+  // Draw every screen once (the canvas renderer compiles its effects lazily).
+  const prewarmStart = performance.now();
+  for (const id of ['hud', 'select', 'hangar', 'map', 'base', 'pause', 'settings', 'docked', 'complete', 'help', 'menu']) {
+    ui.prewarm(id);
+    // One marker sprite too, so the sprite pipeline compiles now rather than at launch.
+    overlay.spritesBegin();
+    overlay.sprite(-50, -50, 8, 1, [0, 0, 0, 0]);
+    overlay.spritesEnd();
+    overlay.render(renderer);
+    loading(0.9 + 0.08 * (performance.now() - prewarmStart > 0 ? 1 : 0), 'preparing the interface');
+    await new Promise(resolve => setTimeout(resolve, 16));
+  }
+  ui.invalidate();
+  const warmMs = warm.total;
   hangarPad.visible = false;
   hideShowroom();
   fx.reset();
-  // Compile time is not frame time: only a software renderer (or an extreme
-  // warm-up) starts on the light version; slow frames are handled at runtime.
-  if (profile.settings.quality === 'auto' && qualityName !== 'low' && (soft.software || warmMs > 15000)) {
+  // Compile time is not frame time: only a software renderer (or a material
+  // taking very long to compile, as on one) starts on the light version; slow
+  // frames are handled at runtime.
+  if (profile.settings.quality === 'auto' && qualityName !== 'low' && (soft.software || warm.slowest > 1500)) {
     qualityName = 'low';
+    UI_FX.shadows = false;
     pipeline.setQuality('low');
     resize(true);
   }
-  p0.log?.(`[xplorator] renderer=${soft.name} quality=${qualityName} warmup=${Math.round(warmMs)}ms`);
+  p0.log?.(`[xplorator] renderer=${soft.name} quality=${qualityName} warmup=${Math.round(warmMs)}ms (${warm.kinds} material kinds, slowest ${Math.round(warm.slowest)}ms) world=${Math.round(bootWorldMs)}ms`);
   try { p0.hud?.(input.device === 'touch' ? HELP_TEXT_TOUCH : HELP_TEXT); } catch { /* optional */ }
   audio.configure({ sound: profile.settings.sound, musicEnabled: profile.settings.music });
   loading(1, 'Outer Verge');
@@ -942,10 +972,17 @@ export async function createGame(p0) {
 
   // ------------------------------------------------------------- frame loop
   let slowFrames = 0;
+  let lastLoopMs = 0;
+  p0.log?.(`[xplorator] start() finished after ${Math.round(performance.now() - bootT0)} ms`);
   p0.loop((dtRaw) => {
+    // Diagnostic for very long frames (wall clock; dev console only).
+    const nowMs = performance.now();
+    if (lastLoopMs && nowMs - lastLoopMs > 1000) p0.log?.(`[xplorator] long frame ${Math.round(nowMs - lastLoopMs)} ms in ${mode}/${ui.topId} at ${game.time.toFixed(1)} s`);
+    lastLoopMs = nowMs;
     const dt = Math.min(Math.max(Number(dtRaw) || 0, 0), 0.1);
     game.time += dt;
     resize();
+    const tA = performance.now();
     const inp = input.poll(dt, { menu: ui.menuInput });
     lastInput = inp;
     ui.handleEdges(inp.edges);
@@ -961,6 +998,7 @@ export async function createGame(p0) {
     else if (mode === 'select') ui.screen('select').update3d?.(dt);
     if (mode !== 'hangar' && mode !== 'base') updateCamera(dt);
 
+    const tB = performance.now();
     world.setCameraWorld(camWorld, anchor);
     const v = viewport();
     const showShip = mode !== 'hangar' && mode !== 'select';
@@ -972,15 +1010,20 @@ export async function createGame(p0) {
     fx.update(dt, { mining, shipWorld: world.shipRoot, minerSocket: world.ship.sockets.miner });
     syncPresence(dt);
     computeHudModel();
+    const tC = performance.now();
     ui.update(dt);
+    const tD = performance.now();
 
     if (saveQueued) { saveTimer -= dt; if (saveTimer <= 0) saveNow(); }
     pipeline.render();
+    const tE = performance.now();
+    if (tE - tA > 500) p0.log?.(`[xplorator] slow frame body: sim ${Math.round(tB - tA)} effects ${Math.round(tC - tB)} ui ${Math.round(tD - tC)} render ${Math.round(tE - tD)} ms (${mode}/${ui.topId})`);
     pipeline.adapt(dt * 1000, game.time);
     // Very slow device (or the review's software renderer): drop to the light version.
     if (dt > 0.2 && game.time > 2 && game.time < 12) slowFrames++;
     if (slowFrames > 6 && qualityName !== 'low' && profile.settings.quality === 'auto') {
-      qualityName = 'low'; pipeline.setQuality('low'); resize(true); slowFrames = 0;
+      qualityName = 'low';
+      UI_FX.shadows = false; pipeline.setQuality('low'); resize(true); slowFrames = 0;
     }
   });
 

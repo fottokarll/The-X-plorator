@@ -14,7 +14,7 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 export const QUALITY = Object.freeze({
   high: { label: 'High', bloom: true, samples: 4, renderScale: 1, maxPixelRatio: 2, sky: 1024, octaves: 5, dust: 520, stars: 2600, planetDetail: 72 },
   medium: { label: 'Medium', bloom: true, samples: 0, renderScale: 0.85, maxPixelRatio: 1.5, sky: 512, octaves: 4, dust: 320, stars: 1800, planetDetail: 64 },
-  low: { label: 'Low', bloom: false, samples: 0, renderScale: 0.7, maxPixelRatio: 1.25, sky: 256, octaves: 3, dust: 160, stars: 1100, planetDetail: 48 },
+  low: { label: 'Low', bloom: false, samples: 0, renderScale: 0.7, maxPixelRatio: 1.25, sky: 192, octaves: 2, dust: 160, stars: 1100, planetDetail: 48, lite: true },
 });
 
 // Makes every pixel finite before bloom: one NaN pixel would otherwise be
@@ -95,6 +95,7 @@ export function createPipeline({ renderer, scene, camera, overlay }) {
   let composer = null, bloomPass = null, finalPass = null;
   let width = 1, height = 1, basePixelRatio = 1;
   let dynamicScale = 1;
+  let softwareScale = 1;
   const stats = { frameMs: 16, slowSince: 0, fastSince: 0 };
 
   function build() {
@@ -113,7 +114,7 @@ export function createPipeline({ renderer, scene, camera, overlay }) {
   }
 
   function effectivePixelRatio() {
-    return Math.min(basePixelRatio, quality.maxPixelRatio) * quality.renderScale * dynamicScale;
+    return Math.min(basePixelRatio, quality.maxPixelRatio) * quality.renderScale * dynamicScale * softwareScale;
   }
 
   function applySize() {
@@ -127,6 +128,7 @@ export function createPipeline({ renderer, scene, camera, overlay }) {
     get renderScale() { return quality.renderScale * dynamicScale; },
     // Pixels per CSS pixel of the 3D render target (for point-sprite sizing).
     get pixelRatio() { return effectivePixelRatio(); },
+    setSoftwareScale(s) { softwareScale = s; applySize(); },
     setQuality(q) {
       quality = QUALITY[q] ?? QUALITY.high;
       dynamicScale = 1;
@@ -166,18 +168,51 @@ export function createPipeline({ renderer, scene, camera, overlay }) {
     },
     get smoothedFrameMs() { return stats.frameMs; },
     // Compiles every material and pass up front (a shader compiles on the
-    // first frame that draws it; mid-game that is a visible hitch).
-    async warmUp() {
+    // first frame that draws it; mid-game that is a visible hitch). As the
+    // Project 0 games guide recommends, each kind of material is drawn alone
+    // into a tiny target with a pause in between, so even a software renderer
+    // without parallel shader compilation never blocks for seconds at a time.
+    async warmUp(onProgress = null) {
       const t0 = performance.now();
-      if (renderer.compileAsync) await renderer.compileAsync(scene, camera);
+      const tiny = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType });
+      const drawn = [], kinds = new Map();
+      scene.traverse(o => {
+        if (!o.isMesh && !o.isPoints && !o.isLine) return;
+        drawn.push([o, o.visible]);
+        const m = o.material;
+        const key = [m.type, m.customProgramCacheKey?.() ?? '', m.vertexShader?.length, m.fragmentShader?.length, JSON.stringify(m.defines ?? {}),
+          m.transparent, m.side, m.blending, !!m.map, !!m.vertexColors, !!o.isInstancedMesh, !!o.isPoints, !!o.isLine, m.flatShading].join('|');
+        if (!kinds.has(key)) kinds.set(key, o);
+      });
+      const list = [...kinds.values()];
+      const ancestors = new Map();
+      let slowest = 0;
+      for (let i = 0; i < list.length; i++) {
+        const one = list[i];
+        for (const [o] of drawn) o.visible = o === one;
+        // Its parents must be visible for it to draw.
+        for (let p = one.parent; p; p = p.parent) { if (!ancestors.has(p)) ancestors.set(p, p.visible); p.visible = true; }
+        const t = performance.now();
+        renderer.setRenderTarget(tiny);
+        renderer.render(scene, camera);
+        renderer.setRenderTarget(null);
+        slowest = Math.max(slowest, performance.now() - t);
+        onProgress?.((i + 1) / (list.length + 2));
+        await new Promise(resolve => setTimeout(resolve, 16));
+      }
+      for (const [o, v] of drawn) o.visible = v;
+      for (const [p, v] of ancestors) p.visible = v;
+      tiny.dispose();
       const saved = { w: width, h: height };
       composer.setPixelRatio(1);
       composer.setSize(64, 36);
       composer.render();
+      onProgress?.((list.length + 1) / (list.length + 2));
+      await new Promise(resolve => setTimeout(resolve, 16));
       if (overlay) overlay.render(renderer);
       width = saved.w; height = saved.h;
       applySize();
-      return performance.now() - t0;
+      return { total: performance.now() - t0, slowest, kinds: list.length };
     },
   };
 }

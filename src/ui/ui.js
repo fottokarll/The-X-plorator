@@ -9,7 +9,7 @@ import { createTouchFlightController } from '../input/touch.js';
  * sprites(overlay, view), pointerDown/Move/Up(contact, event), modal,
  * menuInput (true: arrows/confirm navigate instead of steering), dimBelow.
  */
-export function createUi({ overlay, onActivate = null }) {
+export function createUi({ overlay, onActivate = null, onScreen = null }) {
   const reg = createRegistry();
   const contacts = createContactTracker();
   const state = { focus: null, hover: null, pressed: null };
@@ -88,6 +88,7 @@ export function createUi({ overlay, onActivate = null }) {
       for (const s of stack) s.exit?.();
       const s = screens.get(id);
       stack = [s];
+      onScreen?.(id);
       s.enter?.(params);
       this.cancelTouches();
       focusFirst();
@@ -96,6 +97,7 @@ export function createUi({ overlay, onActivate = null }) {
       const s = screens.get(id);
       if (stack.includes(s)) return;
       stack.push(s);
+      onScreen?.(id);
       s.enter?.(params);
       this.cancelTouches();
       focusFirst();
@@ -173,6 +175,17 @@ export function createUi({ overlay, onActivate = null }) {
         return;
       }
       top()?.pointerUp?.(contact, event);
+    },
+    // Draws a screen once into the canvas without entering it (warm-up of the
+    // canvas renderer's own shaders, which compile on first use).
+    prewarm(id) {
+      const s = screens.get(id);
+      if (!s) return;
+      const ctx = overlay.begin();
+      reg.reset();
+      try { s.draw(ctx, view, reg, state); } catch { /* best effort */ }
+      reg.reset();
+      dirty = true;
     },
     cancelTouches() {
       for (const c of contacts.clear()) releaseTouchRole(c);

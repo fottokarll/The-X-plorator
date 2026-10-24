@@ -79,7 +79,9 @@ Lot #696 (STARBOX) was listed in the same response and was **not touched**.
   **no errors**, `p0.save: 1.1 KB kept in this browser`.
 - `devkit.review(14)` (the review's 640 × 360, pixel ratio 1, simulated keys) in phone mode:
   **ran 14 s at 59.4 fps, worst frame 30.6 ms, first frame 17 ms**, 0 errors (GPU Chromium, Intel
-  HD Graphics 6000). The software renderer used by the real review was **not** measured here.
+  HD Graphics 6000). Under a software renderer (headless Chromium + SwiftShader, 640 × 360) the
+  same review profile ran at 6.2-6.5 fps with 0 errors on the automatically selected light version;
+  the first seconds still show a few 2.5-4 s frames.
 - **Pointer events carry `t, k, x, y, dx, dy, buttons, button, touch`** (logged from the game on a
   real touch). There is **no pointer id**, as the STARBOX team also found; our contact tracker
   matches fingers by their previous endpoint `(x - dx, y - dy)`. Two simultaneous fingers (stick +
@@ -100,6 +102,7 @@ Lot #696 (STARBOX) was listed in the same response and was **not touched**.
 | Experience package, first build (36 files, 305 KB) | **HTTP 200, `ok: true`, 0 errors, 0 warnings, 0 findings**, candidate hash `d2ca06e64ae8459a` |
 | Experience package with audio (44 files, 1.69 MB) | **HTTP 200, `ok: true`, 0 errors, 0 warnings**, candidate hash `0f5893a94559ad70` |
 | Experience package, final M1 commit | **HTTP 200, `ok: true`, 0 errors, 0 warnings**, candidate hash `1e6872511b494c7c` (revalidate any later revision with `npm run p0:validate`) |
+| Experience after software-renderer optimisation | **HTTP 200, `ok: true`, 0 errors, 0 warnings**, candidate hash `2ad35ac72d7916ec` |
 | Street build LOD0/1/2, final M1 commit | **HTTP 200, `ok: true`**, every LOD 0 errors / 0 warnings |
 | Street build LOD0/1/2 | **HTTP 200, `ok: true`, 0 errors, 0 warnings** (see docs/LOT_323_BUILD.md) |
 

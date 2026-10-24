@@ -64,7 +64,7 @@ void main() {
 }
 `;
 
-export function createSky(renderer, { size = 512, octaves = 5, sunDirection, planetDirection }) {
+export function createSky(renderer, { size = 512, octaves = 5, lite = false, sunDirection, planetDirection }) {
   const sun = new THREE.Vector3(...sunDirection).normalize();
   const planet = new THREE.Vector3(...planetDirection).normalize();
   const material = new THREE.ShaderMaterial({
@@ -72,7 +72,7 @@ export function createSky(renderer, { size = 512, octaves = 5, sunDirection, pla
     fragmentShader: SKY_FRAGMENT,
     side: THREE.BackSide,
     depthWrite: false,
-    defines: { XP_OCTAVES: octaves },
+    defines: lite ? { XP_OCTAVES: octaves, XP_LITE: 1 } : { XP_OCTAVES: octaves },
     uniforms: {
       uSun: { value: sun },
       uPlanet: { value: planet },

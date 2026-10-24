@@ -23,7 +23,7 @@ export function createWorld({ renderer, scene, quality, layout, baseTiles, power
 
   // Sky cube map (background + environment).
   const sky = createSky(renderer, {
-    size: quality.sky, octaves: quality.octaves,
+    size: quality.sky, octaves: quality.octaves, lite: Boolean(quality.lite),
     sunDirection: SECTOR.sunDirection, planetDirection: planetCenter.clone().normalize().toArray(),
   });
   scene.background = sky.texture;
@@ -47,19 +47,21 @@ export function createWorld({ renderer, scene, quality, layout, baseTiles, power
   // Planets: the unreachable hero world and two moons (IMG 07 composition).
   const planet = createPlanet({
     radius: SECTOR.planet.radius, position: SECTOR.planet.center, sunDirection: SECTOR.sunDirection,
-    palette: PLANET_PALETTES.verge, seed: SECTOR.planet.seed, detail: quality.planetDetail, octaves: quality.octaves,
+    palette: PLANET_PALETTES.verge, seed: SECTOR.planet.seed, detail: quality.planetDetail, octaves: quality.octaves, lite: Boolean(quality.lite),
     ring: { inner: 1.12, outer: 1.62, tilt: [1.32, 0.18, -0.32], opacity: 0.55 },
   });
   const moons = [
-    createPlanet({ radius: 820, position: [-4200, 5600, 21000], sunDirection: SECTOR.sunDirection, palette: PLANET_PALETTES.frost, seed: 41, detail: 32, octaves: quality.octaves }),
-    createPlanet({ radius: 1100, position: [9400, -3600, 13500], sunDirection: SECTOR.sunDirection, palette: PLANET_PALETTES.dusk, seed: 77, detail: 32, octaves: quality.octaves, rimStrength: 1.2 }),
-    createPlanet({ radius: 260, position: [2600, 1500, 9000], sunDirection: SECTOR.sunDirection, palette: PLANET_PALETTES.frost, seed: 13, detail: 24, octaves: quality.octaves, atmosphere: false }),
+    createPlanet({ radius: 820, position: [-4200, 5600, 21000], sunDirection: SECTOR.sunDirection, palette: PLANET_PALETTES.frost, seed: 41, detail: 32, octaves: quality.octaves, lite: Boolean(quality.lite) }),
+    createPlanet({ radius: 1100, position: [9400, -3600, 13500], sunDirection: SECTOR.sunDirection, palette: PLANET_PALETTES.dusk, seed: 77, detail: 32, octaves: quality.octaves, lite: Boolean(quality.lite), rimStrength: 1.2 }),
+    createPlanet({ radius: 260, position: [2600, 1500, 9000], sunDirection: SECTOR.sunDirection, palette: PLANET_PALETTES.frost, seed: 13, detail: 24, octaves: quality.octaves, lite: Boolean(quality.lite), atmosphere: false }),
   ];
   universe.add(planet.group, ...moons.map(m => m.group));
 
   const rays = createRays({ size: SECTOR.planet.radius * 4.2, intensity: 1.05, bias: [-0.55, 0.85] });
   rays.object.position.copy(planetCenter).addScaledVector(sunDir, SECTOR.planet.radius * 1.02);
   universe.add(rays.object);
+  // The light version skips the large additive ray quad (costly on software renderers).
+  rays.object.visible = !quality.lite;
 
   // Stars ride with the camera (infinitely far); dust wraps around it.
   const stars = createStars({ count: quality.stars });

@@ -179,8 +179,9 @@ export const PLANET_PALETTES = Object.freeze({
 
 export function createPlanet({
   radius, position, sunDirection, palette = PLANET_PALETTES.verge, seed = 1,
-  detail = 64, octaves = 5, atmosphere = true, ring = null, rimStrength = 1,
+  detail = 64, octaves = 5, atmosphere = true, ring = null, rimStrength = 1, lite = false,
 }) {
+  const noiseDefines = lite ? { XP_OCTAVES: octaves, XP_LITE: 1 } : { XP_OCTAVES: octaves };
   const pal = palette;
   const sun = new THREE.Vector3(...sunDirection).normalize();
   const group = new THREE.Group();
@@ -190,7 +191,7 @@ export function createPlanet({
   const surface = new THREE.ShaderMaterial({
     vertexShader: SURFACE_VERTEX,
     fragmentShader: SURFACE_FRAGMENT,
-    defines: { XP_OCTAVES: octaves },
+    defines: noiseDefines,
     uniforms: {
       uSun: { value: sun },
       uDeep: { value: new THREE.Color(pal.deep) },
@@ -239,6 +240,7 @@ export function createPlanet({
     ringMaterial = new THREE.ShaderMaterial({
       vertexShader: RING_VERTEX,
       fragmentShader: RING_FRAGMENT,
+      defines: { ...noiseDefines, XP_OCTAVES: Math.min(3, octaves) },
       side: THREE.DoubleSide,
       transparent: true,
       depthWrite: false,
