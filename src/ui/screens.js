@@ -202,7 +202,13 @@ function vesselSelect(game) {
       }
     },
     onAction(id, data) {
-      if (id.startsWith('card-')) { selected = data; return; }
+      // Confirming the vessel that is already selected starts the journey
+      // (Space/E/A twice, or a tap on the Survivor card).
+      if (id.startsWith('card-')) {
+        if (selected === data && VESSELS.find(x => x.id === data).available) game.startNewJourney(data);
+        else selected = data;
+        return;
+      }
       if (id === 'start') {
         const v = VESSELS.find(x => x.id === selected);
         if (v.available) game.startNewJourney(v.id);

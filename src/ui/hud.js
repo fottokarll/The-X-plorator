@@ -74,8 +74,10 @@ export function createHud(game) {
       ];
       const leftX = pad;
       if (view.landscapePhone || !view.phone) {
+        // Start below the city's fullscreen button in the top-left corner.
+        const chipTop = Math.max(top, view.p0Corner);
         chips.forEach(([ic, val, col], i) => {
-          const y = top + 12 * u + i * 26 * u;
+          const y = chipTop + 12 * u + i * 26 * u;
           icon(ctx, ic, leftX + 10 * u, y, 18 * u, col);
           text(ctx, String(val), leftX + 26 * u, y + 1, { size: 15 * u, weight: 400, color: COLORS.text, shadow: true });
         });
