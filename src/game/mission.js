@@ -86,7 +86,8 @@ export function onCollected(profile, node, { capacity, yieldFactor = 1, playSeco
   if (node.type === 'crystal') profile.stats.crystals += amount; else profile.stats.ore += amount;
   const m = profile.mission;
   if (!m.collected.includes(node.id)) m.collected.push(node.id);
-  if (['locate', 'scan', 'collect'].includes(m.step)) {
+  // Only crystals advance First Light; ore is a welcome bonus.
+  if (node.type === 'crystal' && ['locate', 'scan', 'collect'].includes(m.step)) {
     m.target = undefined;
     m.step = profile.cargo.cryon >= GOAL_CRYON ? 'return' : 'locate';
   }

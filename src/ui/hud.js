@@ -29,7 +29,8 @@ export function createHud(game) {
         boost: [right - big, bottom - big - 8 * u, big],
         brake: [right - big * 2 - mid - 18 * u, bottom - mid - 2 * u, mid],
         scan: [right - mid - 4 * u, bottom - big * 2 - mid - 40 * u, mid],
-        interact: [right - big * 2 - mid - 22 * u, bottom - big * 2 - 30 * u, mid + 3 * u],
+        // Action sits above Brake with room for its label.
+        interact: [right - big * 2 - mid - 18 * u, bottom - mid - 2 * u - mid * 2 - 36 * u, mid + 3 * u],
         stickHome: [26 * u + 62 * u, bottom - 70 * u],
       };
     }
@@ -37,7 +38,7 @@ export function createHud(game) {
       boost: [right - big, bottom - big, big],
       brake: [right - big * 2 - mid - 16 * u, bottom - mid + 4 * u, mid],
       scan: [right - mid - 6 * u, bottom - big * 2 - mid - 26 * u, mid],
-      interact: [right - big * 2 - mid - 20 * u, bottom - big * 2 - 22 * u, mid + 3 * u],
+      interact: [right - big * 2 - mid - 16 * u, bottom - mid + 4 * u - mid * 2 - 36 * u, mid + 3 * u],
       stickHome: [40 * u + 62 * u, bottom - 62 * u],
     };
   }

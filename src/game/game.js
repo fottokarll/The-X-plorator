@@ -144,6 +144,8 @@ export async function createGame(p0) {
 
   function applyStats() {
     stats = computeStats(profile.vessel, profile.equipped);
+    // Each Scanner Array on the outpost extends the ship's scan range.
+    stats.scanRange += 25 * profile.base.filter(t => t.type === 'scanner').length;
     flightProfile = profileFor(profile.settings.handling, stats);
   }
 
@@ -207,6 +209,18 @@ export async function createGame(p0) {
       }
     }
     flight.position = { x: p.x, y: p.y, z: p.z };
+  }
+
+  // The mission's target node when it is within range, else the nearest node.
+  function preferredNode(maxDistance, filter = () => true) {
+    const p = v3(flight.position);
+    const obj = objective(profile, layout.nodes, [p.x, p.y, p.z]);
+    const target = obj.kind === 'node' ? layout.nodes.find(n => n.id === obj.target) : null;
+    if (target && nodeAmount(profile, target) >= 0.5 && filter(target)) {
+      const d = p.distanceTo(tmp2.set(...target.position)) - target.radius;
+      if (d <= maxDistance) return { node: target, distance: Math.max(0, d) };
+    }
+    return nearestNode(maxDistance, filter);
   }
 
   function nearestNode(maxDistance, filter = () => true) {
@@ -284,15 +298,15 @@ export async function createGame(p0) {
     // Docking is offered when there is something to deliver or the mission asks for it.
     const wantsDock = cargoUsed(profile) > 0 || ['return', 'dock'].includes(profile.mission.step);
     if (wantsDock && dockDistance() < 70) return 'dock';
-    const near = nearestNode(70);
-    if (near && profile.mission.scanned.includes(near.node.id) && cargoUsed(profile) < stats.capacity) return 'collect';
+    const near = preferredNode(70, n => profile.mission.scanned.includes(n.id));
+    if (near && cargoUsed(profile) < stats.capacity) return 'collect';
     return null;
   }
 
   function doScan() {
     if (mode !== 'flight' || scanning) return;
     fx.pulse(v3(flight.position), stats.scanRange);
-    const target = nearestNode(stats.scanRange);
+    const target = preferredNode(stats.scanRange, n => !profile.mission.scanned.includes(n.id)) ?? preferredNode(stats.scanRange);
     if (!target) { toast(`No signal within ${formatDistance(stats.scanRange)}`, '#E5A1CF'); return; }
     if (profile.mission.scanned.includes(target.node.id)) {
       scanCard = { id: target.node.id + 'k' + game.time.toFixed(1), type: target.node.type, until: game.time + 3,
@@ -308,7 +322,7 @@ export async function createGame(p0) {
     if (state === 'launch') return launch();
     if (state === 'dock') return startDocking();
     if (state === 'collect') {
-      const near = nearestNode(70);
+      const near = preferredNode(70, n => profile.mission.scanned.includes(n.id));
       if (near && !mining) mining = { node: near.node, t: 0, duration: stats.mineTime };
       return;
     }
@@ -465,15 +479,18 @@ export async function createGame(p0) {
     const behind = ndc.z > 1 || pr.clone().sub(camera.position).dot(camera.getWorldDirection(tmp2)) < 0;
     let x = (ndc.x * 0.5 + 0.5) * v.w, y = (-ndc.y * 0.5 + 0.5) * v.h;
     const margin = 48;
+    // Arrows stay below the Project 0 toolbar and above the bottom controls.
+    const topInset = 92, bottomInset = input.device === 'touch' ? 190 : 170;
     const onScreen = !behind && x > margin && x < v.w - margin && y > margin && y < v.h - margin;
     let angle = 0;
     if (!onScreen) {
       let dx = x - v.w / 2, dy = y - v.h / 2;
       if (behind) { dx = -dx; dy = -dy; }
       if (Math.abs(dx) < 1e-3 && Math.abs(dy) < 1e-3) dy = 1;
-      const sx = (v.w / 2 - margin) / Math.abs(dx || 1e-6), sy = (v.h / 2 - margin * 1.6) / Math.abs(dy || 1e-6);
+      const cy = (topInset + v.h - bottomInset) / 2, halfH = Math.max(40, (v.h - bottomInset - topInset) / 2);
+      const sx = (v.w / 2 - margin) / Math.abs(dx || 1e-6), sy = halfH / Math.abs(dy || 1e-6);
       const s = Math.min(sx, sy);
-      x = v.w / 2 + dx * s; y = v.h / 2 + dy * s;
+      x = v.w / 2 + dx * s; y = cy + dy * s;
       angle = Math.atan2(-dx, dy);
     }
     return { x, y, onScreen, angle };
@@ -717,6 +734,7 @@ export async function createGame(p0) {
       if (!status.ok) return status;
       if (!spend(profile.bank, def.cost)) return { ok: false, reason: 'Not enough resources in the station bank' };
       profile.base.push({ q, r, type });
+      applyStats();
       world.station.rebuild(profile.base, profile.powered);
       rebuildObstacles();
       saveSoon();
@@ -757,6 +775,20 @@ export async function createGame(p0) {
       p0.save?.(null);
     },
     saveNow,
+    // Read-only snapshot for local test scripts (never used by the game itself).
+    debugState() {
+      const p = flight.position;
+      const obj = objective(profile, layout.nodes, [p.x, p.y, p.z]);
+      let target = null;
+      if (obj.kind === 'node' && obj.target) target = layout.nodes.find(n => n.id === obj.target)?.position ?? null;
+      else if (obj.kind === 'station') { const d = world.station.dockPoint(new THREE.Vector3()).sub(world.universe.position); target = [d.x, d.y, d.z]; }
+      return {
+        mode, top: ui.topId, pos: [p.x, p.y, p.z], yaw: flight.yaw, pitch: flight.pitch, speed: flight.speed,
+        step: profile.mission.step, cargo: { ...profile.cargo }, bank: { ...profile.bank }, scanned: [...profile.mission.scanned],
+        target, targetId: obj.target, kind: obj.kind, scanRange: stats.scanRange, scanning: Boolean(scanning), mining: Boolean(mining),
+        interact: interactState(), fraction: camRig.state.measured, quality: qualityName,
+      };
+    },
   };
 
   function enterFlightFromDock() {
@@ -885,13 +917,13 @@ function createHangarPad() {
   const group = new THREE.Group();
   group.name = 'HangarPad';
   const deck = new THREE.Mesh(
-    new THREE.CylinderGeometry(5.6, 5.8, 0.2, 6),
+    new THREE.CylinderGeometry(4.3, 4.5, 0.2, 6),
     new THREE.MeshStandardMaterial({ color: 0x07102a, roughness: 0.75, metalness: 0.25, flatShading: true }),
   );
   deck.position.y = -0.55;
   group.add(deck);
   const ringMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.3, 0.62, 0.72) });
-  for (const r of [5.2, 3.4]) {
+  for (const r of [4.0, 2.7]) {
     const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.03, 4, 64), ringMat);
     ring.rotation.x = Math.PI / 2;
     ring.position.y = -0.43;

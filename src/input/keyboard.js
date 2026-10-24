@@ -63,9 +63,12 @@ export function rebind(bindings, action, code) {
   if (!DEFAULT_BINDINGS[action]) return { ok: false, reason: 'Unknown action' };
   if (RESERVED.has(code) && action !== 'pause') return { ok: false, reason: 'That key is reserved by the browser or Project 0' };
   const next = sanitizeBindings(bindings);
+  const previous = next[action][0];
   for (const [a, list] of Object.entries(next)) {
-    if (a !== action) next[a] = list.filter(c => c !== code);
-    if (!next[a].length) next[a] = [...DEFAULT_BINDINGS[a]].filter(c => c !== code).slice(0, 1);
+    if (a === action) continue;
+    next[a] = list.filter(c => c !== code);
+    // An action that just lost its only key takes over the rebound action's old key (a swap).
+    if (!next[a].length) next[a] = previous && previous !== code ? [previous] : [...DEFAULT_BINDINGS[a]].filter(c => c !== code).slice(0, 1);
   }
   next[action] = [code, ...next[action].filter(c => c !== code)].slice(0, 3);
   return { ok: true, bindings: next };

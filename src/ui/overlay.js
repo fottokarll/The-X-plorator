@@ -6,12 +6,10 @@ import * as THREE from 'three';
  * full-screen texture, re-uploaded only when its content changes, plus a GPU
  * sprite layer for markers that must follow the 3D scene every frame.
  */
+// OffscreenCanvas works in the Project 0 worker and in every target browser.
 function makeCanvas(w, h) {
-  if (typeof OffscreenCanvas !== 'undefined') return new OffscreenCanvas(w, h);
-  const c = globalThis.document?.createElement('canvas');
-  if (!c) throw new Error('No canvas available for the UI');
-  c.width = w; c.height = h;
-  return c;
+  if (typeof OffscreenCanvas === 'undefined') throw new Error('OffscreenCanvas is not supported in this browser');
+  return new OffscreenCanvas(w, h);
 }
 
 const OVERLAY_VERTEX = /* glsl */ `

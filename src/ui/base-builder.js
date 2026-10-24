@@ -89,11 +89,13 @@ export function createBaseScreen(game) {
       ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
       text(ctx, 'ORBITAL OUTPOST', w / 2, top + 14 * u, { size: (phone ? 15 : 19) * u, weight: 300, align: 'center', tracking: 6 * u });
       text(ctx, 'HAVEN  ·  OUTER VERGE', w / 2, top + 36 * u, { size: 9.5 * u, color: COLORS.cyanSoft, align: 'center', tracking: 3 * u });
-      // Bank (top-left).
+      // Bank: top-left on wide screens, a centred row under the title on phones.
       const p = game.profile;
       [['crystal', p.bank.cryon, COLORS.cyan], ['ore', p.bank.ferrite, COLORS.gold]].forEach(([ic, val, col], i) => {
-        icon(ctx, ic, pad + (phone ? 50 : 10) * u, top + 14 * u + i * 26 * u, 17 * u, col);
-        text(ctx, String(val), pad + (phone ? 66 : 26) * u, top + 15 * u + i * 26 * u, { size: 15 * u });
+        const bx = phone ? w / 2 - 50 * u + i * 70 * u : pad + 10 * u;
+        const by = phone ? top + 60 * u : top + 14 * u + i * 26 * u;
+        icon(ctx, ic, bx, by, 17 * u, col);
+        text(ctx, String(val), bx + 16 * u, by + 1, { size: 15 * u });
       });
       // Module tray (bottom).
       const trayH = (phone ? 96 : 128) * u;
@@ -113,7 +115,7 @@ export function createBaseScreen(game) {
         ctx.strokeStyle = sel ? COLORS.cyan : focus ? 'rgba(112,226,244,0.7)' : COLORS.line;
         ctx.lineWidth = sel ? 1.6 : 1; ctx.stroke();
         icon(ctx, ICONS[m.type], x + cw / 2, y + ch * 0.3, Math.min(26 * u, ch * 0.32), sel ? COLORS.cyan : COLORS.text);
-        text(ctx, m.label.toUpperCase(), x + cw / 2, y + ch * 0.62, { size: (phone ? 8.5 : 10) * u, align: 'center', tracking: 1.2 * u, maxWidth: cw - 6 * u });
+        text(ctx, (cw < 110 * u ? m.short : m.label).toUpperCase(), x + cw / 2, y + ch * 0.62, { size: (phone ? 8.5 : 10) * u, align: 'center', tracking: 1 * u, maxWidth: cw - 6 * u });
         text(ctx, costText(m.cost), x + cw / 2, y + ch * 0.84, { size: (phone ? 8.5 : 10) * u, align: 'center', color: afford ? COLORS.gold : COLORS.faint, maxWidth: cw - 6 * u });
         reg.add(id, x, y, cw, ch, { data: m.type });
       });
@@ -130,7 +132,7 @@ export function createBaseScreen(game) {
       ctx.strokeStyle = COLORS.gold; ctx.strokeRect(-5 * u, -5 * u, 10 * u, 10 * u); ctx.restore();
       text(ctx, message || prompt, w / 2 - pw / 2 + 40 * u, sy + (phone ? 23 : 27) * u, { size: 12.5 * u, color: '#F9E3C4', maxWidth: pw - 170 * u });
       button(ctx, reg, 'place', w / 2 + pw / 2 - 118 * u, sy + 8 * u, 108 * u, (phone ? 30 : 38) * u, 'Place', { state, u, small: true, primary: status.ok && afford, enabled: status.ok && afford });
-      if (portrait) button(ctx, reg, 'back', pad, top + 60 * u, 110 * u, 38 * u, 'Back', { state, icon: 'back', u, small: true });
+      if (portrait) button(ctx, reg, 'back', pad, top + 86 * u, 110 * u, 38 * u, 'Back', { state, icon: 'back', u, small: true });
       if (!phone) text(ctx, `${def.note} · tap a glowing hex or use the arrows`, w / 2, sy - 14 * u, { size: 10.5 * u, color: COLORS.faint, align: 'center' });
       L = { tray };
       void divider;

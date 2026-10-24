@@ -202,7 +202,8 @@ export function createUi({ overlay }) {
       s?.tick?.(dt);
       if (dirty) draw();
       overlay.spritesBegin();
-      for (const x of stack) x.sprites?.(overlay, view);
+      // Only the top screen draws sprites (they would sit above any dimmed panel).
+      s?.sprites?.(overlay, view);
       overlay.spritesEnd();
     },
   };

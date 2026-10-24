@@ -5,11 +5,11 @@
 export const HEX_SIZE = 9;
 
 export const BASE_MODULES = Object.freeze([
-  { type: 'solar', label: 'Solar Array', cost: { ferrite: 4 }, note: '+ station power' },
-  { type: 'storage', label: 'Storage', cost: { ferrite: 6 }, note: '+ 8 cargo bank' },
-  { type: 'refinery', label: 'Refinery', cost: { ferrite: 6, cryon: 3 }, note: 'refines Cryon' },
-  { type: 'scanner', label: 'Scanner Array', cost: { ferrite: 3, cryon: 4 }, note: '+ scan range' },
-  { type: 'dock', label: 'Dock', cost: { ferrite: 8 }, note: 'extra berth' },
+  { type: 'solar', label: 'Solar Array', short: 'Solar', cost: { ferrite: 4 }, note: 'Powers the outpost' },
+  { type: 'storage', label: 'Storage', short: 'Storage', cost: { ferrite: 6 }, note: 'Expands station storage' },
+  { type: 'refinery', label: 'Refinery', short: 'Refinery', cost: { ferrite: 6, cryon: 3 }, note: 'Refining arrives in M2' },
+  { type: 'scanner', label: 'Scanner Array', short: 'Scanner', cost: { ferrite: 3, cryon: 4 }, note: '+25 m ship scan range' },
+  { type: 'dock', label: 'Dock', short: 'Dock', cost: { ferrite: 8 }, note: 'An extra berth' },
 ]);
 
 export const STARTER_BASE = Object.freeze([

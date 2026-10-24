@@ -5,6 +5,14 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
+    "start": "node tools/serve.mjs",
+    "devkit": "node tools/devkit.mjs",
+    "playtest": "node tools/play-loop.mjs",
+    "capture": "node tools/capture.mjs",
+    "lot:build": "node lot/build-lot.mjs",
+    "lot:validate": "node lot/validate-lot.mjs",
+    "package": "node tools/package-experience.mjs",
+    "p0:validate": "node tools/p0-validate.mjs",
     "lab": "python3 -m http.server 8080"
   },
   "description": "Project 0 City browser space game — preproduction tooling",

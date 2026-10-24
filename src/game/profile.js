@@ -4,7 +4,7 @@ import { sanitizeBindings, DEFAULT_BINDINGS } from '../input/keyboard.js';
 
 /**
  * The player's save, kept by Project 0 per player (p0.saved / p0.save, plain
- * JSON up to 16 KB) or by the standalone host in localStorage. Everything is
+ * JSON up to 16 KB) or by the standalone host in the browser. Everything is
  * validated on load: a save comes from the player's browser and is never
  * trusted for anything of value (no ATT, no prizes depend on it).
  */
