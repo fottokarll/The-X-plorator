@@ -28,10 +28,9 @@ export const formatDistance = units => {
   return m >= 1000 ? `${(m / 1000).toFixed(m >= 10000 ? 0 : 1)} km` : `${Math.round(m / 10) * 10} m`;
 };
 
-const HELP_TEXT = 'THE X-PLORATOR · Outer Verge. Auto-cruise is on: steer with WASD/arrows or the left stick. '
-  + 'Boost Shift/Space/RT · Brake C/LT · Scan Q/X · Collect & dock E/A · Map M/Y · Hangar H · Base B · Pause P/Start. '
-  + 'Optional look: right-drag or right stick (recentres). Mouse wheel zooms. Phone: left stick, right buttons, drag to look. '
-  + 'Scan & collect 6 Cryon, then dock at Haven Outpost.';
+const HELP_TEXT = 'Auto-cruise flies you. Steer: WASD / left stick. Boost Shift/RT · Brake C/LT · Scan Q/X · Collect & dock E/A · '
+  + 'Map M · Hangar H · Base B · Pause P. Look: right-drag (optional). Goal: scan and collect 6 Cryon, dock at Haven Outpost.';
+const HELP_TEXT_TOUCH = 'Auto-cruise flies you. Left thumb steers, hold Boost or Brake, tap Scan and Action. Drag right to look. Goal: collect 6 Cryon, dock at Haven Outpost.';
 
 const v3 = o => new THREE.Vector3(o.x, o.y, o.z);
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
@@ -824,7 +823,12 @@ export async function createGame(p0) {
   resize(true);
 
   const safe = fn => e => { try { fn(e ?? {}); } catch (err) { p0.log?.('input error:', err?.message); } };
-  p0.on?.('pointerdown', safe(e => { if (e.touch) input.device = 'touch'; ui.pointerDown(e); }));
+  let pointerLogged = false;
+  p0.on?.('pointerdown', safe(e => {
+    if (!pointerLogged) { pointerLogged = true; p0.log?.('[xplorator] pointer fields:', Object.keys(e).join(','), 'touch=' + Boolean(e.touch)); }
+    if (e.touch) input.device = 'touch';
+    ui.pointerDown(e);
+  }));
   p0.on?.('pointermove', safe(e => ui.pointerMove(e)));
   p0.on?.('pointerup', safe(e => ui.pointerUp(e)));
   p0.on?.('wheel', safe(e => {
@@ -862,8 +866,10 @@ export async function createGame(p0) {
     resize(true);
   }
   p0.log?.(`[xplorator] renderer=${soft.name} quality=${qualityName} warmup=${Math.round(warmMs)}ms`);
-  try { p0.hud?.(HELP_TEXT); } catch { /* optional */ }
-  loading(1, 'THE X-PLORATOR');
+  try { p0.hud?.(input.device === 'touch' ? HELP_TEXT_TOUCH : HELP_TEXT); } catch { /* optional */ }
+  loading(1, 'Outer Verge');
+  // Let the final progress message reach the host before start() resolves.
+  await new Promise(resolve => setTimeout(resolve, 60));
 
   // ------------------------------------------------------------- frame loop
   let slowFrames = 0;

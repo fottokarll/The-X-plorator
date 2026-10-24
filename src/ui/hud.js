@@ -63,7 +63,8 @@ export function createHud(game) {
       layout = { touch: touch ? touchLayout(view) : null };
       vignette(ctx, w, h, 0.42);
       const pad = view.pad;
-      const top = pad + (view.phone ? 4 * u : 0);
+      // On phones Project 0's toolbar spans the full width: keep the whole top band clear.
+      const top = view.phone ? Math.max(pad, view.p0Top) : pad;
 
       // Resources (top-left).
       const chips = [
@@ -71,7 +72,7 @@ export function createHud(game) {
         ['ore', m.cargo.ferrite, COLORS.gold],
         ['cargo', `${m.cargo.used}/${m.cargo.capacity}`, COLORS.text],
       ];
-      const leftX = pad + (view.phone ? 46 * u : 0); // leave Project 0's corner button room on phones
+      const leftX = pad;
       if (view.landscapePhone || !view.phone) {
         chips.forEach(([ic, val, col], i) => {
           const y = top + 12 * u + i * 26 * u;
@@ -87,7 +88,8 @@ export function createHud(game) {
       }
 
       // Sector title (top-centre).
-      const titleY = Math.max(top + 12 * u, view.p0Top + 10 * u);
+      // Phone portrait stacks the counters above the title; elsewhere they share the top line.
+      const titleY = view.phone && view.portrait ? top + 44 * u : Math.max(top + 12 * u, view.p0Top + 10 * u);
       const tw = measure(ctx, m.sector.toUpperCase(), 17 * u, 300, 5 * u);
       text(ctx, m.sector.toUpperCase(), w / 2, titleY, { size: (view.phone ? 14 : 17) * u, weight: 300, align: 'center', tracking: 5 * u, shadow: true });
       if (!view.phone || view.landscapePhone) {

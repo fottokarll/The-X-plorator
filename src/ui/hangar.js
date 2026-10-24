@@ -51,7 +51,7 @@ export function createHangarScreen(game) {
       return { mode: 'portrait', header, ship, chips, detail, inv, footer };
     }
     if (phone) {
-      const header = { x: pad + 44 * u, y: Math.max(pad, 8 * u), w: w - pad * 2 - 44 * u, h: 40 * u };
+      const header = { x: pad, y: Math.max(pad, view.p0Top), w: w - pad * 2, h: 40 * u };
       const ship = { x: pad, y: header.y + header.h, w: w * 0.46, h: h - header.y - header.h - 64 * u - pad };
       const chips = { x: pad, y: ship.y + ship.h, w: w * 0.46, h: 60 * u };
       const detail = { x: w * 0.46 + pad * 2, y: header.y + header.h + 4 * u, w: w * 0.54 - pad * 3, h: h - header.y - header.h - pad - 58 * u };

@@ -98,6 +98,19 @@ export function createWorld({ renderer, scene, quality, layout, baseTiles, power
   const glows = createGlowPoints(64);
   universe.add(glows.object);
 
+  // Readability veil: a soft dark disc just behind the ship, facing the camera
+  // and depth-tested, so the white hull stays legible over the bright limb
+  // while the ship itself is never darkened.
+  const veil = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false,
+    uniforms: { uAlpha: { value: 0.34 } },
+    vertexShader: 'varying vec2 vUv; void main() { vUv = uv * 2.0 - 1.0; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: 'uniform float uAlpha; varying vec2 vUv; void main() { float r = length(vUv); float a = exp(-r * r * 3.0) * (1.0 - smoothstep(0.85, 1.0, r)) * uAlpha; gl_FragColor = vec4(0.0, 0.01, 0.04, a); }',
+  }));
+  veil.renderOrder = 3;
+  veil.frustumCulled = false;
+  universe.add(veil);
+
   // Remote explorers in the same session, drawn as small ghost ships.
   const remote = new Map();
 
@@ -165,6 +178,14 @@ export function createWorld({ renderer, scene, quality, layout, baseTiles, power
           glows.add(tmp, glowSize * 2.4, [0.16, 0.42, 0.85]);
         }
         trails.update(dt, nozzleWorld, cameraWorld, 0.5 + thrust * 0.5 + (boosting ? 0.4 : 0));
+        // Veil sits a few ship-lengths behind the ship on the camera ray.
+        tmp.subVectors(shipRoot.position, cameraWorld).normalize();
+        veil.position.copy(shipRoot.position).addScaledVector(tmp, ship.radius * 3);
+        veil.quaternion.copy(camera.quaternion);
+        veil.scale.setScalar(ship.radius * 7.5);
+        veil.visible = true;
+      } else {
+        veil.visible = false;
       }
       // Crystal node halos.
       for (const n of layout.nodes) {

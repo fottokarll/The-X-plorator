@@ -61,7 +61,9 @@ void main() {
     a = ring * (ang <= vShape.y ? 1.0 : 0.18);
   }
   else if (shape == 5) a = 1.0 - aaStep(0.96, r);
+  else if (shape == 6) { a = exp(-r * r * 2.2) * (1.0 - smoothstep(0.8, 1.0, r)); }
   a *= vColor.a;
+  // Shape 6 is a darkening veil: colour 0, alpha only.
   gl_FragColor = vec4(vColor.rgb * a, a);
 }
 `;
@@ -183,4 +185,4 @@ export function createOverlay(maxSprites = 64) {
   };
 }
 
-export const SPRITE = Object.freeze({ RING: 0, DIAMOND: 1, ARROW: 2, DOT: 3, ARC: 4, DISC: 5 });
+export const SPRITE = Object.freeze({ RING: 0, DIAMOND: 1, ARROW: 2, DOT: 3, ARC: 4, DISC: 5, VEIL: 6 });
