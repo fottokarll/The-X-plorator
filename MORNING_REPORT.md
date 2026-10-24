@@ -155,7 +155,7 @@ All images below are screenshots of the running game, captured by `tools/capture
 | Dev kit `devkit.review(14)` (the review's 640×360 and simulated keys), desktop with 2 players and phone | **14 s at 59.4 fps**, worst frame 27.6-30.6 ms, 0 errors |
 | Dev kit touch (real CDP touch, phone view): menus by tap, **two fingers at once** (stick + Boost), pause | **works**. P0 pointer events are `t,k,x,y,dx,dy,buttons,button,touch` with no pointer id |
 | Dev kit controller (`tools/devkit-pad.mjs`, simulated standard gamepad): d-pad + A menus, left stick + RT, X scan, Start pause | **works** (two consecutive runs, 0 errors) |
-| Project 0 **server validation**, experience package (lot 323) | **HTTP 200, ok, 0 errors, 0 warnings** (candidate `0f5893a94559ad70`) |
+| Project 0 **server validation**, experience package (lot 323), final commit | **HTTP 200, ok, 0 errors, 0 warnings** (candidate `1e6872511b494c7c`) |
 | Project 0 **server validation**, street build LOD0/1/2 (lot 323) | **HTTP 200, ok, 0 errors, 0 warnings** |
 | Local package rule checks (`npm run package`) | OK (44 files, 305 KB JS, 1.3 MB zip) |
 | Frame rate, active flight, standalone GPU Chromium on this PC (Intel HD Graphics 6000) | 1920×1080 High **51.2 fps** (p95 33 ms) · 1280×720 High **53.9 fps** · 390×844 phone emulation Medium **60.1 fps** |
