@@ -1,0 +1,28 @@
+{
+  "name": "the-x-plorator",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "start": "node tools/serve.mjs",
+    "devkit": "node tools/devkit.mjs",
+    "playtest": "node tools/play-loop.mjs",
+    "capture": "node tools/capture.mjs",
+    "lot:build": "node lot/build-lot.mjs",
+    "lot:validate": "node lot/validate-lot.mjs",
+    "package": "node tools/package-experience.mjs",
+    "p0:validate": "node tools/p0-validate.mjs",
+    "lab": "python3 -m http.server 8080",
+    "p0:publish": "node tools/p0-publish.mjs",
+    "live:visit": "node tools/live-visit.mjs"
+  },
+  "description": "Project 0 City browser space game — preproduction tooling",
+  "dependencies": {
+    "three": "0.186.0"
+  },
+  "devDependencies": {
+    "@gltf-transform/core": "4.5.1",
+    "playwright": "1.64.1"
+  }
+}

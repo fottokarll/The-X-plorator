@@ -1,0 +1,20 @@
+name: Planet Lab checks
+on:
+  push:
+    branches: [main, 'setup/**', 'feature/**']
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check generator syntax
+        run: node --check src/planet-generator.js
+      - name: Run deterministic planet tests
+        run: npm test

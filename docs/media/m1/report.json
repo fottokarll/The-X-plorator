@@ -1,0 +1,30 @@
+{
+  "size": "844x390",
+  "touch": true,
+  "steps": [
+    "wait:5000",
+    "shot:phone-landscape-menu",
+    "tap:188,174",
+    "wait:2500",
+    "shot:phone-landscape-select",
+    "tap:542,342",
+    "wait:7000",
+    "shot:phone-landscape-flight",
+    "drag:110,300,60,250,1500",
+    "wait:300",
+    "shot:phone-landscape-steer"
+  ],
+  "fps": [],
+  "renderer": "ANGLE (Intel, Mesa Intel(R) HD Graphics 6000 (BDW GT3), OpenGL ES 3.2)",
+  "errors": [],
+  "logs": [
+    "log: [p0] [xplorator] screen menu at 0.0 s",
+    "log: [p0] [xplorator] renderer=ANGLE (Intel, Mesa Intel(R) HD Graphics 6000 (BDW GT3), OpenGL ES 3.2) quality=medium warmup=2224ms (20 material kinds, slowest 344ms) world=610ms",
+    "info: [hud] Auto-cruise flies you. Left thumb steers, hold Boost or Brake, tap Scan and Action. Drag right to look. Goal: collect 6 Cryon, dock at Haven Outpost.",
+    "log: [p0] [xplorator] start() finished after 3383 ms",
+    "log: [p0] [xplorator] pointer fields: x,y,dx,dy,button,buttons,touch touch=true",
+    "log: [p0] [xplorator] screen select at 5.3 s",
+    "log: [p0] [xplorator] screen hud at 7.9 s",
+    "log: [p0] [xplorator] screen hud at 10.2 s"
+  ]
+}

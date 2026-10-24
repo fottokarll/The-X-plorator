@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>The X-plorator</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23071631%22/%3E%3Cpath d=%22M9 8l14 16M23 8L9 24%22 stroke=%22%2370E2F4%22 stroke-width=%223%22 stroke-linecap=%22round%22/%3E%3C/svg%3E">
+  <style>
+    html, body { margin: 0; height: 100%; background: #071631; overflow: hidden; overscroll-behavior: none; }
+    body { touch-action: none; -webkit-user-select: none; user-select: none; font-family: system-ui, sans-serif; }
+    canvas#game { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; display: block; touch-action: none; outline: none; }
+    #veil { position: fixed; inset: 0; display: grid; place-items: center; background: #071631; color: #E6F6FD; letter-spacing: 0.35em; transition: opacity 0.6s; }
+    #veil .bar { width: 220px; height: 2px; background: rgba(112,226,244,0.2); margin-top: 18px; }
+    #veil .bar i { display: block; height: 100%; width: 0; background: #70E2F4; transition: width 0.2s; }
+    #veil small { display: block; margin-top: 10px; font-size: 11px; letter-spacing: 0.2em; color: rgba(230,246,253,0.6); }
+    #error { position: fixed; left: 16px; right: 16px; bottom: 16px; color: #ffb3c1; font: 12px monospace; white-space: pre-wrap; display: none; }
+  </style>
+  <script type="importmap">
+    { "imports": { "three": "/vendor/three/build/three.module.js", "three/addons/": "/vendor/three/examples/jsm/" } }
+  </script>
+</head>
+<body>
+  <canvas id="game" tabindex="0"></canvas>
+  <div id="veil"><div style="text-align:center">THE X-PLORATOR<div class="bar"><i></i></div><small id="veil-label">loading</small></div></div>
+  <div id="error"></div>
+  <script type="module" src="/standalone/host.js"></script>
+</body>
+</html>

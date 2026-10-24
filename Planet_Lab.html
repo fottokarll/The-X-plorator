@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The X-plorator | Planet Lab</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,system-ui,Arial,sans-serif;background:#080d20;color:#eaf3f8}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 65% 5%,#1c2447 0,#080d20 65%);min-height:100vh}
+header{max-width:1050px;margin:auto;padding:24px 20px 4px}h1{font-size:clamp(24px,4vw,42px);letter-spacing:.07em;font-weight:500;margin:.1em 0}p{color:#aabccf;line-height:1.55}.eyebrow{font-size:11px;letter-spacing:.24em;color:#81d5cc}
+main{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(260px,.8fr);gap:20px;max-width:1050px;margin:0 auto;padding:10px 20px 30px}
+.scene{min-height:400px;border:1px solid #ffffff20;background:#080e22;border-radius:20px;overflow:hidden;position:relative}
+canvas{display:block;width:100%;height:100%}.watermark{position:absolute;bottom:18px;left:18px;color:#a5dcd6;letter-spacing:.17em;font-size:11px;pointer-events:none}
+aside{border:1px solid #ffffff28;border-radius:20px;padding:22px;background:#ffffff08}
+h2{font-size:25px;font-weight:500;margin:0 0 4px}.tag{color:#87d6da;font-size:12px;letter-spacing:.1em}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:26px 0}
+.meta small{display:block;color:#93aab7;margin-bottom:4px}.meta strong{font-size:15px;font-weight:500}
+input{width:100%;background:#080f25;color:#fff;border:1px solid #ffffff3b;border-radius:10px;padding:12px;font-size:16px}
+label{font-size:12px;color:#acc5d0;display:block;margin-bottom:7px}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+button{border:1px solid #78c7c0;background:#173b48;color:#e5fafa;padding:12px 15px;border-radius:10px;font-size:14px;cursor:pointer;min-height:44px}
+button.secondary{background:transparent;border-color:#ffffff45}
+.note{font-size:11px;color:#92acba;border-top:1px solid #ffffff24;padding-top:15px;margin-top:24px}
+@media(max-width:680px){main{grid-template-columns:1fr}.scene{height:360px;min-height:360px}header{padding-top:18px}}
+</style></head>
+<body>
+<header><div class="eyebrow">THE X-PLORATOR / PRE-PRODUCTION TOOL</div><h1>PLANET LAB</h1><p>Explore procedural colour, rings, deposits and approximate claim value. Concept art generated entirely in code — not the final 3D renderer.</p></header>
+<main><section class="scene"><canvas id="space" aria-label="Stylized generated planet with orbit rings"></canvas><div class="watermark">GALACTIC ATLAS // DESIGN STUDY</div></section>
+<aside><div class="tag">PROCEDURAL PROFILE / MOCK</div><h2 id="name">Planet</h2><p id="biome"></p>
+<div class="meta"><div><small>Size</small><strong id="size">—</strong></div><div><small>Habitability</small><strong id="hab">—</strong></div><div><small>Planet resources</small><strong id="resources">—</strong></div><div><small>Suggested ATT</small><strong id="price">—</strong></div></div>
+<label for="seed">Planet seed (0 to 4294967295)</label><input id="seed" type="number" min="0" max="4294967295" step="1" value="42" inputmode="numeric">
+<div class="actions"><button id="generate">Generate planet</button><button class="secondary" id="next">Surprise me</button><button class="secondary" id="export">Download profile JSON</button></div>
+<p class="note">No Project 0 connection. ATT amounts are illustrative design values, not purchases or platform quotations. Serve locally: <code>python3 -m http.server 8080</code> then open <code>/Planet_Lab.html</code>.</p>
+</aside></main>
+<script type="module">
+import { generatePlanet } from "./src/planet-generator.js";
+const canvas=document.getElementById("space"),ctx=canvas.getContext("2d");
+const seedInput=document.getElementById("seed");
+let planet=null;
+function render(){
+ const box=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);
+ canvas.width=Math.max(1,Math.round(box.width*dpr));canvas.height=Math.max(1,Math.round(box.height*dpr));
+ ctx.setTransform(dpr,0,0,dpr,0,0);const w=box.width,h=box.height;
+ ctx.clearRect(0,0,w,h);ctx.fillStyle="#080e22";ctx.fillRect(0,0,w,h);
+ // Deterministic sparse stars (stable within a seed).
+ let v=planet.seed>>>0;const rand=()=>{v=(Math.imul(v,1664525)+1013904223)>>>0;return v/4294967296};
+ for(let i=0;i<85;i++){const x=rand()*w,y=rand()*h,r=.3+rand()*1.4;ctx.fillStyle="rgba(214,244,255,"+(.2+rand()*.56)+")";ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()}
+ const x=w*.5,y=h*.49,r=Math.min(w*.26,h*.30),colors=planet.visual.palette;
+ ctx.save();ctx.translate(x,y);ctx.rotate(planet.visual.tiltDegrees*Math.PI/180);
+ const orbit=(front)=>{ctx.beginPath();ctx.ellipse(0,0,r*1.65,r*.43,0,front?0:Math.PI,front?Math.PI:Math.PI*2);ctx.strokeStyle=front?colors[0]+"aa":colors[0]+"55";ctx.lineWidth=Math.max(3,r*.065);ctx.stroke()};
+ if(planet.visual.rings)orbit(false);
+ const glow=ctx.createRadialGradient(0,0,r*.8,0,0,r*1.24);glow.addColorStop(0,colors[1]+"2b");glow.addColorStop(1,"#00000000");ctx.fillStyle=glow;ctx.beginPath();ctx.arc(0,0,r*1.24,0,Math.PI*2);ctx.fill();
+ const grad=ctx.createRadialGradient(-r*.43,-r*.5,r*.02,0,0,r*1.28);grad.addColorStop(0,colors[0]);grad.addColorStop(.47,colors[1]);grad.addColorStop(1,colors[2]);
+ ctx.fillStyle=grad;ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fill();
+ ctx.save();ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.clip();
+ ctx.lineWidth=r*.14;ctx.strokeStyle=colors[0]+"55";
+ for(let i=0;i<4;i++){ctx.beginPath();const yy=-r*.48+i*r*.34;ctx.moveTo(-r*1.2,yy);ctx.bezierCurveTo(-r*.5,yy-r*.3,r*.24,yy+r*.35,r*1.2,yy-r*.1);ctx.stroke()}
+ ctx.restore();if(planet.visual.rings)orbit(true);ctx.restore();
+}
+function load(seed){
+ planet=generatePlanet(seed);
+ document.getElementById("name").textContent=planet.id.toUpperCase();
+ document.getElementById("biome").textContent=planet.classLabel+" • "+planet.visual.atmosphere;
+ document.getElementById("size").textContent=planet.size;
+ document.getElementById("hab").textContent=planet.habitability+"%";
+ document.getElementById("resources").textContent=planet.resources.map(r=>r.kind+" "+r.initial).join(", ");
+ document.getElementById("price").textContent=planet.suggestedAttPrice+" ATT (mock)";
+ render();
+}
+function read(){const n=Number(seedInput.value);if(!Number.isInteger(n)||n<0||n>4294967295){alert("Enter a valid uint32 seed.");return null}return n}
+document.getElementById("generate").onclick=()=>{const n=read();if(n!==null)load(n)};
+document.getElementById("next").onclick=()=>{const next=(Math.imul((planet.seed>>>0),1103515245)+12345)>>>0;seedInput.value=String(next);load(next)};
+document.getElementById("export").onclick=()=>{const blob=new Blob([JSON.stringify(planet,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=planet.id+".json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+new ResizeObserver(()=>planet&&render()).observe(canvas.parentElement);
+load(42);
+</script>
+</body></html>
