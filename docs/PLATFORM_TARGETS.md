@@ -25,7 +25,7 @@ Decision: **PC browser is primary; phone browsers MUST be fully playable, not me
 - Manual QA: one-handed accessibility is a future option; full basic flight should work with both thumbs and no external hardware.
 
 ## Shared input model
-All controls feed ONE semantic `InputActions`: yaw/pitch/roll/thrust/brake/boost/camera/interact/scan/map/back/pause. The existing `src/input/gamepad.mjs` is gamepad mapping only. Add `src/input/touch.mjs` without introducing another render loop or changing P0's input hooks until SDK audited. Keyboard/mouse remains desktop default. Switch displayed button hints based on last active input device.
+All controls feed ONE semantic `InputActions`: yaw/pitch/roll/thrust/brake/boost/camera/interact/scan/map/back/pause. The existing `src/input/gamepad.js` is gamepad mapping only. Add `src/input/touch.js` without introducing another render loop or changing P0's input hooks until SDK audited. Keyboard/mouse remains desktop default. Switch displayed button hints based on last active input device.
 
 ## Xbox/TV support
 - 16:9 TV 1280×720/1920×1080 with large, readable high-contrast menu text/focus indicators and ~5% safe margin.

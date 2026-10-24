@@ -70,4 +70,4 @@ Deliver research report, parameter table with evidence and limitations, two work
 Do not modify STARBOX, any Project 0 production lot, or the locked blue-violet IMG 7 art direction.
 
 ## Owner control correction (2026-10-24)
-The owner explicitly rejects ABZÛ's simultaneous left-stick + right-stick + RT controls. Do not treat ABZÛ control binding as the target. Research only *feel* (smoothing, momentum and camera response) with permitted observation. We have a one-stick + automatic cruise prototype at `src/flight/assisted-flight.mjs`. Use REA later **only** if lawful, source-available references/recordings cannot answer a meaningful motion question. Its lack must not block a playable build.
+The owner explicitly rejects ABZÛ's simultaneous left-stick + right-stick + RT controls. Do not treat ABZÛ control binding as the target. Research only *feel* (smoothing, momentum and camera response) with permitted observation. We have a one-stick + automatic cruise prototype at `src/flight/assisted-flight.js`. Use REA later **only** if lawful, source-available references/recordings cannot answer a meaningful motion question. Its lack must not block a playable build.

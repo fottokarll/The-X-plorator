@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {createTouchFlightController,radialStick} from "../src/input/touch.mjs";
+import {createTouchFlightController,radialStick} from "../src/input/touch.js";
 
 test("radial deadzone filters thumb jitter",()=>{
   assert.deepEqual(radialStick(1,2,64),{x:0,y:0});

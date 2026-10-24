@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {applyDeadzone,mapStandardGamepad,neutralInput,readGamepad} from "../src/input/gamepad.mjs";
+import {applyDeadzone,mapStandardGamepad,neutralInput,readGamepad} from "../src/input/gamepad.js";
 
 function makePad({axes=[0,0,0,0],buttons={},connected=true,mapping='standard'}={}) {
   const keys=Array.from({length:16},(_,i)=>({value:buttons[i]??0,pressed:(buttons[i]??0)>.5}));

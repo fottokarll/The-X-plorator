@@ -23,7 +23,7 @@ ABZÛ was a **VISUAL/ATMOSPHERE** reference (fluid tranquil exploration) and onl
 - No mandatory mouse aiming.
 
 ### First technical implementation
-`src/flight/assisted-flight.mjs` includes an independent experimental flight state and damped follow-camera model. Inputs are semantically mapped from `src/input/gamepad.mjs`, `src/input/touch.mjs`, and future keyboard layer.
+`src/flight/assisted-flight.js` includes an independent experimental flight state and damped follow-camera model. Inputs are semantically mapped from `src/input/gamepad.js`, `src/input/touch.js`, and future keyboard layer.
 Initial rates are **original uncalibrated values**; six Node unit tests validate basic behavior, not play feel, 3D visibility, or P0 compatibility.
 
 ### Next proof

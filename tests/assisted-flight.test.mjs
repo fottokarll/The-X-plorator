@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {createFlightState,stepFlight,setCruise,resetFlight} from "../src/flight/assisted-flight.mjs";
+import {createFlightState,stepFlight,setCruise,resetFlight} from "../src/flight/assisted-flight.js";
 const sim=(s,i={},secs=2)=>{for(let j=0;j<secs*60;j++)stepFlight(s,i,1/60);return s;};
 test("cruise moves automatically without holding RT",()=>{
  const s=sim(createFlightState()); assert.ok(s.speed>9&&s.position.z>0);

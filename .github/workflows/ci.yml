@@ -15,6 +15,6 @@ jobs:
         with:
           node-version: '22'
       - name: Check generator syntax
-        run: node --check src/planet-generator.mjs
+        run: node --check src/planet-generator.js
       - name: Run deterministic planet tests
         run: npm test

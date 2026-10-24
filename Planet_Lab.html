@@ -30,7 +30,7 @@ button.secondary{background:transparent;border-color:#ffffff45}
 <p class="note">No Project 0 connection. ATT amounts are illustrative design values, not purchases or platform quotations. Serve locally: <code>python3 -m http.server 8080</code> then open <code>/Planet_Lab.html</code>.</p>
 </aside></main>
 <script type="module">
-import { generatePlanet } from "./src/planet-generator.mjs";
+import { generatePlanet } from "./src/planet-generator.js";
 const canvas=document.getElementById("space"),ctx=canvas.getContext("2d");
 const seedInput=document.getElementById("seed");
 let planet=null;

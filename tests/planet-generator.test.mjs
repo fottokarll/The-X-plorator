@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { generatePlanet, PLANET_TYPES } from "../src/planet-generator.mjs";
+import { generatePlanet, PLANET_TYPES } from "../src/planet-generator.js";
 
 test("reproducible result for a fixed seed", () => {
   assert.deepEqual(generatePlanet(42), generatePlanet(42));

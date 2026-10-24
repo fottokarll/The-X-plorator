@@ -3,7 +3,7 @@
 Context: **PC browser first**, gamepad as secondary; Xbox Edge target optional and unverified. Read `docs/PLATFORM_TARGETS.md`, `AGENTS.md`, `docs/DECISIONS.md`, `docs/ART_BIBLE.md` and the current P0 documentation first.
 
 ## Input architecture
-- Implement action-based controller input independent of Three.js/P0. Example pure module: `src/input/gamepad.mjs`.
+- Implement action-based controller input independent of Three.js/P0. Example pure module: `src/input/gamepad.js`.
 - Poll controller during existing game loop (NOT extra renderer loops), handle user gesture/focus and `getGamepads` unsupported safely.
 - Use standard mapping, with adjustable deadzone and sensitivity. Normalize left stick yaw/pitch, right stick camera movement, RT thrust, LT brake, RB boost, LB+left-stick horizontal roll, A interact/dock, X scan, Y map, B back, Start pause.
 - UI focus and D-pad control in pause/main/hangar/build/galaxy menus. Avoid relying on hover/pointer.

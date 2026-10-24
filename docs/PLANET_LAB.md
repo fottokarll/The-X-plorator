@@ -1,6 +1,6 @@
 # Planet Lab — first functioning code artifact
 
-A small dependency-free, visual 2D demonstration of planet palettes, size, rings, planet class, habitability, resource deposits, and suggested ATT claim price. It shares the deterministic `src/planet-generator.mjs` module with Node tests. This is NOT 3D gameplay, real purchase UI, or the P0 SDK.
+A small dependency-free, visual 2D demonstration of planet palettes, size, rings, planet class, habitability, resource deposits, and suggested ATT claim price. It shares the deterministic `src/planet-generator.js` module with Node tests. This is NOT 3D gameplay, real purchase UI, or the P0 SDK.
 
 ## Run it
 From the repository root, use `python3 -m http.server 8080` and open http://localhost:8080/Planet_Lab.html . Alternatively use any static HTTP server. This is needed because ES modules are restricted under `file://` in many browsers.
