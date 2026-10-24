@@ -20,6 +20,8 @@ export function createUi({ overlay, onActivate = null }) {
   let lastSignature = '';
   let sinceDraw = 0;
   let lastPointerTouch = false;
+  // After a screen change, a still-held confirm button must not activate again.
+  let confirmGuard = 0;
 
   // Touch flight controls feed the existing pure touch controller.
   const touchCtrl = createTouchFlightController({ stickRadius: 58, lookRadius: 150, deadzone: 0.08 });
@@ -29,6 +31,7 @@ export function createUi({ overlay, onActivate = null }) {
   const top = () => stack[stack.length - 1] ?? null;
 
   function focusFirst() {
+    confirmGuard = 0.22;
     const s = top();
     // Draw once so the registry knows the screen's items.
     draw();
@@ -118,7 +121,7 @@ export function createUi({ overlay, onActivate = null }) {
           const n = reg.neighbour(state.focus, e);
           if (n) { state.focus = n.id; dirty = true; }
         } else if (s.menuInput && e === 'confirm') {
-          activate(reg.find(state.focus));
+          if (confirmGuard <= 0) activate(reg.find(state.focus));
         } else if (e === 'back') {
           s.back?.();
           dirty = true;
@@ -194,6 +197,7 @@ export function createUi({ overlay, onActivate = null }) {
 
     update(dt) {
       sinceDraw += dt;
+      confirmGuard = Math.max(0, confirmGuard - dt);
       const s = top();
       const sig = stack.map(x => x.signature?.() ?? '').join('|');
       if (sig !== lastSignature) { lastSignature = sig; dirty = true; }

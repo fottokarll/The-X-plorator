@@ -1,0 +1,10 @@
+{
+  "summary": "started \"THE X-PLORATOR\" in 7.6 s (36 files, 305 KB); 1 player; first frame 42 ms; 48 fps",
+  "errors": [],
+  "console": [
+    "devkit: 36 modules, 305 KB from http://localhost:5500/",
+    "log: [xplorator] renderer=ANGLE (Intel, Mesa Intel(R) HD Graphics 6000 (BDW GT3), OpenGL ES 3.2) quality=high warmup=5395ms",
+    "devkit: Started in 7.6 s (36 files, 305 KB loaded)",
+    "devkit: p0.save: 1.1 KB kept in this browser"
+  ]
+}

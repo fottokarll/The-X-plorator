@@ -887,9 +887,12 @@ export async function createGame(p0) {
   world.updateEffects(0.016, 0, { camera, viewportHeight: viewport().h, pixelRatio: viewport().pr, thrust: 0.5, boosting: false });
   // Make every material visible once (showroom pad included) for compilation.
   hangarPad.visible = true;
+  // Build the four vessel previews now, so the selection screen opens without a stall.
+  for (const v of VESSELS) showroomShip(`select-${v.id}`, v.id, undefined).ship.group.visible = true;
   fx.prepare();
   const warmMs = await pipeline.warmUp();
   hangarPad.visible = false;
+  hideShowroom();
   fx.reset();
   // Compile time is not frame time: only a software renderer (or an extreme
   // warm-up) starts on the light version; slow frames are handled at runtime.
