@@ -13,6 +13,9 @@ export function createInputHub({ getKeys, getGamepad, isPadActive, touch }) {
   let bindings = sanitizeBindings(DEFAULT_BINDINGS);
   let device = 'kbm';
   const prevKeys = new Set();
+  // Key presses latched from keydown events, so a tap shorter than one
+  // (slow) frame is never lost between two polls.
+  const latched = new Set();
   let prevPad = null;
   const kb = { yaw: 0, pitch: 0 };
   let navRepeat = { dir: null, t: 0 };
@@ -28,7 +31,7 @@ export function createInputHub({ getKeys, getGamepad, isPadActive, touch }) {
   function poll(dt, { menu = false } = {}) {
     const keys = getKeys();
     const edges = new Set();
-    const pressed = codes => codes.some(c => keys.has(c) && !prevKeys.has(c));
+    const pressed = codes => codes.some(c => (keys.has(c) && !prevKeys.has(c)) || latched.has(c));
     const padActive = isPadActive();
     const out = { yaw: 0, pitch: 0, boost: 0, brake: 0, lookX: 0, lookY: 0, edges, device };
 
@@ -50,8 +53,9 @@ export function createInputHub({ getKeys, getGamepad, isPadActive, touch }) {
           if (pressed(bindings[action])) edges.add(action);
         }
       }
-      if (keys.size && [...keys].some(c => !prevKeys.has(c))) device = 'kbm';
+      if ((keys.size && [...keys].some(c => !prevKeys.has(c))) || latched.size) device = 'kbm';
     }
+    latched.clear();
     prevKeys.clear();
     for (const k of keys) prevKeys.add(k);
 
@@ -121,6 +125,7 @@ export function createInputHub({ getKeys, getGamepad, isPadActive, touch }) {
     get bindings() { return bindings; },
     setBindings(b) { bindings = sanitizeBindings(b); },
     setOptions({ invert, sens }) { invertY = Boolean(invert); sensitivity = Math.max(0.4, Math.min(1.8, sens ?? 1)); },
-    releaseAll() { kb.yaw = 0; kb.pitch = 0; prevKeys.clear(); },
+    releaseAll() { kb.yaw = 0; kb.pitch = 0; prevKeys.clear(); latched.clear(); },
+    latchKey(code) { if (typeof code === 'string' && code.length < 32) latched.add(code); },
   };
 }

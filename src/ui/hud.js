@@ -86,7 +86,7 @@ export function createHud(game) {
       }
 
       // Sector title (top-centre).
-      const titleY = top + 12 * u;
+      const titleY = Math.max(top + 12 * u, view.p0Top + 10 * u);
       const tw = measure(ctx, m.sector.toUpperCase(), 17 * u, 300, 5 * u);
       text(ctx, m.sector.toUpperCase(), w / 2, titleY, { size: (view.phone ? 14 : 17) * u, weight: 300, align: 'center', tracking: 5 * u, shadow: true });
       if (!view.phone || view.landscapePhone) {
@@ -119,7 +119,7 @@ export function createHud(game) {
       }
 
       // Objective.
-      const objY = touch ? (view.portrait ? top + 58 * u : top + 52 * u) : h - pad - 118 * u;
+      const objY = touch ? (view.portrait ? titleY + 52 * u : titleY + 40 * u) : h - pad - 118 * u;
       const obj = m.objective;
       const objText = obj.text;
       const detail = [obj.detail, obj.distance > 0 ? `${Math.round(obj.distance)} m` : ''].filter(Boolean).join('  ·  ');

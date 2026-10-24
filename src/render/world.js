@@ -31,12 +31,18 @@ export function createWorld({ renderer, scene, quality, layout, baseTiles, power
   scene.environmentIntensity = 0.85;
 
   // Lights: key from the hidden sun, cool fill from the camera side, sky/ground hemisphere.
-  const sun = new THREE.DirectionalLight(0xdff4ff, 2.2);
+  const sun = new THREE.DirectionalLight(0xdff4ff, 1.8);
   sun.position.copy(sunDir).multiplyScalar(100);
   const fill = new THREE.DirectionalLight(new THREE.Color(PALETTE.lilac), 0.55);
   fill.position.set(0.4, -0.2, -1).multiplyScalar(100);
-  const hemi = new THREE.HemisphereLight(new THREE.Color('#5b8de0'), new THREE.Color('#2a1f5a'), 0.9);
-  scene.add(sun, fill, hemi);
+  const hemi = new THREE.HemisphereLight(new THREE.Color('#5b8de0'), new THREE.Color('#2a1f5a'), 0.75);
+  // Showroom key light for the hangar and vessel cards. It always exists (at
+  // zero intensity in flight) so the light count, and thus every lit shader,
+  // never changes mid-game.
+  const showLight = new THREE.DirectionalLight(0xeaf6ff, 0);
+  const showTarget = new THREE.Object3D();
+  showLight.target = showTarget;
+  scene.add(sun, fill, hemi, showLight, showTarget);
 
   // Planets: the unreachable hero world and two moons (IMG 07 composition).
   const planet = createPlanet({
@@ -45,9 +51,9 @@ export function createWorld({ renderer, scene, quality, layout, baseTiles, power
     ring: { inner: 1.12, outer: 1.62, tilt: [1.32, 0.18, -0.32], opacity: 0.55 },
   });
   const moons = [
-    createPlanet({ radius: 820, position: [-4200, 5600, 21000], sunDirection: SECTOR.sunDirection, palette: PLANET_PALETTES.frost, seed: 41, detail: 32, octaves: Math.min(4, quality.octaves) }),
-    createPlanet({ radius: 1100, position: [9400, -3600, 13500], sunDirection: SECTOR.sunDirection, palette: PLANET_PALETTES.dusk, seed: 77, detail: 32, octaves: Math.min(4, quality.octaves), rimStrength: 1.2 }),
-    createPlanet({ radius: 260, position: [2600, 1500, 9000], sunDirection: SECTOR.sunDirection, palette: PLANET_PALETTES.frost, seed: 13, detail: 24, octaves: 3, atmosphere: false }),
+    createPlanet({ radius: 820, position: [-4200, 5600, 21000], sunDirection: SECTOR.sunDirection, palette: PLANET_PALETTES.frost, seed: 41, detail: 32, octaves: quality.octaves }),
+    createPlanet({ radius: 1100, position: [9400, -3600, 13500], sunDirection: SECTOR.sunDirection, palette: PLANET_PALETTES.dusk, seed: 77, detail: 32, octaves: quality.octaves, rimStrength: 1.2 }),
+    createPlanet({ radius: 260, position: [2600, 1500, 9000], sunDirection: SECTOR.sunDirection, palette: PLANET_PALETTES.frost, seed: 13, detail: 24, octaves: quality.octaves, atmosphere: false }),
   ];
   universe.add(planet.group, ...moons.map(m => m.group));
 
@@ -102,7 +108,17 @@ export function createWorld({ renderer, scene, quality, layout, baseTiles, power
   shipMaterials();
 
   return {
-    scene, universe, sky, planet, moons, field, station, ghost, shipRoot, trails, glows, stars, dust, rays,
+    scene, universe, sky, planet, moons, field, station, ghost, shipRoot, trails, glows, stars, dust, rays, showLight,
+    /** Front light for showroom views: from the camera side, slightly above. */
+    setShowroomLight(intensity, camera = null, target = null) {
+      showLight.intensity = intensity;
+      if (camera && target) {
+        showTarget.position.copy(target);
+        const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+        showLight.position.copy(camera.position).addScaledVector(up, 6).sub(target).normalize().multiplyScalar(50).add(target);
+        showTarget.updateMatrixWorld();
+      }
+    },
     get ship() { return ship; },
     setShip,
     planetCenter,

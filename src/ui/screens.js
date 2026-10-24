@@ -105,13 +105,13 @@ function vesselSelect(game) {
     defaultFocus: () => 'card-survivor',
     signature: () => selected,
     enter() { selected = 'survivor'; },
-    exit() { game.hideShowroom(); },
+    exit() { game.hideShowroom(); game.world.glows.object.visible = true; game.world.setShowroomLight(0); game.pipeline.setBloom(0.85); },
     draw(ctx, view, reg, state) {
       const { w, h, u, pad, portrait, phone } = view;
       vignette(ctx, w, h, 0.55);
       ctx.fillStyle = 'rgba(4,10,32,0.35)';
       ctx.fillRect(0, 0, w, h);
-      const top = portrait ? pad * 2.2 : pad * (phone ? 1.4 : 2.4);
+      const top = Math.max(view.p0Top + 6 * u, portrait ? pad * 2.2 : pad * (phone ? 1.4 : 2.4));
       const ts = portrait ? Math.min(24 * u, w / 15) : (phone ? 20 : 30) * u;
       title(ctx, w / 2, top + ts / 2, ts, { align: 'center', u });
       text(ctx, 'BEGIN THE EXODUS', w / 2, top + ts * 1.5, { size: (phone ? 11 : 14) * u, color: COLORS.cyan, align: 'center', tracking: 6 * u });
@@ -179,6 +179,10 @@ function vesselSelect(game) {
       const cam = game.camera;
       const D = 30;
       const tanHalf = Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2);
+      game.world.glows.object.visible = false;
+      game.pipeline.setBloom(0.4);
+      const centre = cam.position.clone().add(new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion).multiplyScalar(D));
+      game.world.setShowroomLight(2.4, cam, centre);
       for (const c of cards) {
         const vessel = VESSELS.find(x => x.id === c.id);
         const entry = game.showroomShip(`select-${c.id}`, vessel.id, undefined);

@@ -18,7 +18,7 @@ uniform float uFade; uniform vec3 uColor;
 varying vec3 vN; varying vec3 vP;
 void main() {
   vec3 V = normalize(cameraPosition - vP);
-  float f = pow(1.0 - abs(dot(normalize(vN), V)), 3.0);
+  float f = pow(clamp(1.0 - abs(dot(normalize(vN), V)), 0.0, 1.0), 3.0);
   float a = f * uFade;
   gl_FragColor = vec4(uColor * a, a);
 }

@@ -29,7 +29,8 @@ export function viewInfo(w, h) {
   const u = phone
     ? Math.max(0.82, Math.min(1.15, (portrait ? w : h) / 390))
     : Math.max(0.78, Math.min(1.6, Math.min(w / 1280, h / 720)));
-  return { w, h, u, portrait, phone, landscapePhone: phone && !portrait, pad: Math.round(16 * u) };
+  // Project 0 draws its toolbar across the top centre: keep ~58 px clear there.
+  return { w, h, u, portrait, phone, landscapePhone: phone && !portrait, pad: Math.round(16 * u), p0Top: 58 };
 }
 
 export function setFont(ctx, size, weight = 400) {

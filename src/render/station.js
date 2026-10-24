@@ -9,7 +9,7 @@ import { hexToLocal, HEX_SIZE } from '../game/base.js';
  * no shader programs. Geometry is merged into three meshes and rebuilt only
  * when the base layout or its power state changes.
  */
-const WHITE = [0.86, 0.9, 0.97], GREY = [0.42, 0.47, 0.58], DARK = [0.16, 0.18, 0.28];
+const WHITE = [0.7, 0.74, 0.82], GREY = [0.36, 0.4, 0.5], DARK = [0.16, 0.18, 0.28];
 const CYAN = [0.45 * 2.4, 0.89 * 2.4, 0.96 * 2.4], AMBER = [1.0 * 2.6, 0.62 * 2.6, 0.3 * 2.6];
 
 function paint(geometry, color) {

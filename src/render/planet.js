@@ -64,13 +64,14 @@ void main() {
 
   // Luminous limb: a thin bright line on the lit edge, lilac scatter elsewhere.
   float nv = max(dot(N, V), 0.0);
-  float fres = pow(1.0 - nv, 4.0);
+  float fres = pow(clamp(1.0 - nv, 0.0, 1.0), 4.0);
   float line = smoothstep(0.16, 0.0, nv);
   float limbLight = smoothstep(-0.3, 0.5, ndl);
   col += uRim * (fres * 0.9 + line * 1.4) * (0.15 + 1.3 * limbLight) * uRimStrength;
   col += vec3(0.55, 0.38, 0.85) * fres * (1.0 - limbLight) * 0.25 * uRimStrength;
   // Terminator scatter band (cyan to lilac).
-  float band = exp(-pow(ndl * 3.5, 2.0));
+  float bx = ndl * 3.5;
+  float band = exp(-bx * bx); // not pow(): its base may be negative
   col += mix(vec3(0.45, 0.3, 0.85), uRim, 0.35) * band * 0.1;
 
   gl_FragColor = vec4(col, 1.0);

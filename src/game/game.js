@@ -800,6 +800,7 @@ export async function createGame(p0) {
     if (ui.topId === 'map') ui.screen('map').wheel?.(dy);
     else if (mode === 'flight') camRig.zoomBy(Math.sign(dy) * 0.08);
   }));
+  p0.on?.('keydown', safe(e => input.latchKey(typeof e === 'string' ? e : e.code)));
   p0.on?.('resize', () => resize());
   p0.on?.('pad', active => { input.device = active ? 'pad' : 'kbm'; ui.invalidate(); });
   p0.on?.('pointerlock', () => ui.cancelTouches());
@@ -821,14 +822,16 @@ export async function createGame(p0) {
   const warmMs = await pipeline.warmUp();
   hangarPad.visible = false;
   fx.reset();
-  if (profile.settings.quality === 'auto' && qualityName !== 'low' && (warmMs > 1500 || soft.software)) {
+  // Compile time is not frame time: only a software renderer (or an extreme
+  // warm-up) starts on the light version; slow frames are handled at runtime.
+  if (profile.settings.quality === 'auto' && qualityName !== 'low' && (soft.software || warmMs > 15000)) {
     qualityName = 'low';
     pipeline.setQuality('low');
     resize(true);
   }
   p0.log?.(`[xplorator] renderer=${soft.name} quality=${qualityName} warmup=${Math.round(warmMs)}ms`);
   try { p0.hud?.(HELP_TEXT); } catch { /* optional */ }
-  loading(1, 'ready');
+  loading(1, 'THE X-PLORATOR');
 
   // ------------------------------------------------------------- frame loop
   let slowFrames = 0;
@@ -882,13 +885,13 @@ function createHangarPad() {
   const group = new THREE.Group();
   group.name = 'HangarPad';
   const deck = new THREE.Mesh(
-    new THREE.CylinderGeometry(4.2, 4.4, 0.2, 6),
-    new THREE.MeshStandardMaterial({ color: 0x0d1d44, roughness: 0.4, metalness: 0.6, flatShading: true }),
+    new THREE.CylinderGeometry(5.6, 5.8, 0.2, 6),
+    new THREE.MeshStandardMaterial({ color: 0x07102a, roughness: 0.75, metalness: 0.25, flatShading: true }),
   );
   deck.position.y = -0.55;
   group.add(deck);
-  const ringMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.45 * 2.2, 0.89 * 2.2, 0.96 * 2.2) });
-  for (const r of [3.9, 2.6]) {
+  const ringMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.3, 0.62, 0.72) });
+  for (const r of [5.2, 3.4]) {
     const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.03, 4, 64), ringMat);
     ring.rotation.x = Math.PI / 2;
     ring.position.y = -0.43;

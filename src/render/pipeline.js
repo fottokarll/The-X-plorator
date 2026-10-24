@@ -17,6 +17,25 @@ export const QUALITY = Object.freeze({
   low: { label: 'Low', bloom: false, samples: 0, renderScale: 0.7, maxPixelRatio: 1.25, sky: 256, octaves: 3, dust: 160, stars: 1100, planetDetail: 48 },
 });
 
+// Makes every pixel finite before bloom: one NaN pixel would otherwise be
+// blurred across the whole frame (Project 0 games guide, section 6).
+const SanitizeShader = {
+  uniforms: { tDiffuse: { value: null } },
+  vertexShader: /* glsl */ `
+    varying vec2 vUv;
+    void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+  `,
+  fragmentShader: /* glsl */ `
+    uniform sampler2D tDiffuse;
+    varying vec2 vUv;
+    void main() {
+      vec3 c = texture2D(tDiffuse, vUv).rgb;
+      if (any(isnan(c)) || any(isinf(c))) c = vec3(0.0);
+      gl_FragColor = vec4(clamp(c, 0.0, 64.0), 1.0);
+    }
+  `,
+};
+
 const FinalShader = {
   uniforms: { tDiffuse: { value: null }, uExposure: { value: 1.0 } },
   vertexShader: /* glsl */ `
@@ -84,7 +103,10 @@ export function createPipeline({ renderer, scene, camera, overlay }) {
     composer = new EffectComposer(renderer, target);
     composer.addPass(new RenderPass(scene, camera));
     bloomPass = quality.bloom ? new UnrealBloomPass(new THREE.Vector2(256, 256), 0.85, 0.65, 0.92) : null;
-    if (bloomPass) composer.addPass(bloomPass);
+    if (bloomPass) {
+      composer.addPass(new ShaderPass(SanitizeShader));
+      composer.addPass(bloomPass);
+    }
     finalPass = new ShaderPass(FinalShader);
     composer.addPass(finalPass);
     applySize();

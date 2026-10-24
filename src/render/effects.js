@@ -89,8 +89,10 @@ varying float vAge;
 varying float vSide;
 varying float vStrength;
 void main() {
-  float across = 1.0 - vSide * vSide;
-  float fade = pow(1.0 - vAge, 1.6) * smoothstep(0.0, 0.04, vAge + 0.02);
+  float across = max(0.0, 1.0 - vSide * vSide);
+  // Clamp: interpolation can push the age a hair above 1 and pow() of a
+  // negative base is NaN (which bloom would smear over the whole frame).
+  float fade = pow(clamp(1.0 - vAge, 0.0, 1.0), 1.6) * smoothstep(0.0, 0.04, vAge + 0.02);
   float a = across * fade * vStrength;
   vec3 col = mix(uColor, uCore, pow(across, 6.0) * (1.0 - vAge)) * a;
   gl_FragColor = vec4(col, a);
