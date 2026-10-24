@@ -46,8 +46,10 @@ export const CAMERA = Object.freeze({
   fovDesktop: 50,
   fovPortrait: 62,
   fovLandscapePhone: 52,
-  targetFractionDesktop: 0.062,
-  targetFractionPhone: 0.072,
+  // Measured as the ship's largest projected extent (height or wingspan) in
+  // units of the viewport height: IMG 07 / IMG 05 show roughly 4.5-6%.
+  targetFractionDesktop: 0.066,
+  targetFractionPhone: 0.08,
   minFraction: 0.04,
   maxFraction: 0.11,
   elevation: 0.2, // radians above the ship's travel line

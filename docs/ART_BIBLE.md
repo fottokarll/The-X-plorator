@@ -20,7 +20,7 @@ Owner-approved **IMG 7**: tranquil *blue-violet luminous space ocean*. Avoid fla
 Low-poly 3D meshes, GPU shaders, seeded planets, instanced rocks, simple glow/limited full-screen passes, vector HTML/CSS/SVG for interface if platform permits. We do NOT need PNG or GLB for initial code-art test; later selectively authored meshes permitted if runtime quality misses visual target. Concept image is not a screenshot from a real running game.
 
 ## Camera and composition across devices
-- **PC landscape:** free 3D chase camera with optional wide/cinematic pullback, spacious unobstructed central flight region.
+- **PC landscape:** distant cinematic follow camera (ship ~4-9% of the screen height, never a close chase view), spacious unobstructed flight region. See DECISIONS 2026-10-24.
 - **Phone landscape:** same gameplay but compact HUD at corners, left touch-stick, right touch actions, primary target above ship with safe thumb zones.
 - **Phone portrait:** reframe camera, shrink/or reposition distant background objects based on composition, move ship to a thumb-safe zone; bottom controls and collapsible mission panel. No stretching or zoom/crop that hides gameplay; must remain playable.
 - **Build:** orthographic hex isometric camera, multi-row build tray or bottom-sheet modal on phone.

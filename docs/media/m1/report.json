@@ -20,7 +20,7 @@
     "error: Failed to load resource: the server responded with a status of 404 (Not Found)"
   ],
   "logs": [
-    "log: [p0] [xplorator] renderer=ANGLE (Intel, Mesa Intel(R) HD Graphics 6000 (BDW GT3), OpenGL ES 3.2) quality=medium warmup=3397ms",
+    "log: [p0] [xplorator] renderer=ANGLE (Intel, Mesa Intel(R) HD Graphics 6000 (BDW GT3), OpenGL ES 3.2) quality=medium warmup=3785ms",
     "info: [hud] Auto-cruise flies you. Left thumb steers, hold Boost or Brake, tap Scan and Action. Drag right to look. Goal: collect 6 Cryon, dock at Haven Outpost.",
     "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
     "log: [p0] [xplorator] pointer fields: x,y,dx,dy,button,buttons,touch touch=true"

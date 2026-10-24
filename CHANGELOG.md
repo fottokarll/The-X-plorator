@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.2.0-m1 — 2026-10-24 (branch `dev/m1-outer-verge`, not published)
+
+First playable vertical slice, "Outer Verge".
+
+### Added
+- Integration branch combining PR #2 (pre-production), PR #6 (input/mobile, lot #323, one-stick
+  flight) and PR #4 (procedural rendering research).
+- Project 0 experience package in `src/` (verified API only; `docs/P0_API_AUDIT_VERIFIED.md`).
+- Procedural IMG 07 world: baked nebula sky cube, shader planet with luminous limb, atmosphere,
+  orbital ring, moons, god rays, stars, space dust, instanced asteroids, Cryon/Ferrite nodes,
+  hexagonal Haven Outpost.
+- Modular code-built ship (7 sockets, visible module levels, 4 vessel shapes), ribbon contrails.
+- Distant cinematic follow camera with measured screen-space framing; floating origin so the camera
+  stays inside the lot box while the sector spans kilometres.
+- Mission "First Light": explore → scan → collect → return → dock; regrowing nodes; free exploration.
+- Screens: main menu, vessel choice (ATT placeholders, no payments), HUD, hangar (craft/equip with
+  in-game resources), galaxy map, orbital base builder, settings (quality, handling, auto-cruise,
+  invert, sensitivity, camera distance, reduced motion, key rebinding), pause, help, dialogs.
+- Touch controls (floating stick, Boost/Brake/Scan/Action, drag-look), multitouch without pointer ids,
+  Xbox-style gamepad, configurable keyboard; desktop and phone portrait/landscape layouts.
+- Saves through `p0.saved`/`p0.save` (validated and size-checked), standalone host with browser
+  storage.
+- Quality presets, software-renderer detection, warm-up compile, dynamic resolution, NaN-safe bloom.
+- Lot #323 street build: launch beacon LOD0/1/2 with live neon shaders and `build.js`.
+- Tools: local server, standalone host, Playwright capture suite, end-to-end playtest, dev kit
+  drivers (desktop, phone, touch), package builder with rule checks, validate-only scripts.
+- 13 new unit tests (36 total).
+
+### Changed
+- Shared modules renamed `.mjs` → `.js` (Project 0 package rule); three pinned to r186.
+- `assisted-flight.js`: optional gentle auto-level (off in the default profile).
+
+### Verified
+- Project 0 server validation for lot 323: experience and street build both `ok`, 0 errors/warnings.
+- Official dev kit: runs in the sandbox with no errors; review profile 14 s at 59.4 fps (GPU).
+- Nothing published; no ATT transactions; lot #696 untouched.
+
 ## 0.1.0 — 2026-10-23
 - Created The X-plorator repository and pre-production documents.
 - Defined isolated P0 integration audit, M1 task, asset rights and safeguards.

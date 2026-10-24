@@ -56,16 +56,18 @@ export function createCinematicCamera(camera) {
   const worldCamera = new THREE.PerspectiveCamera();
 
   function measure(shipObject, bounds, cam) {
-    // Project the ship's oriented bounding box corners; report height fraction.
-    let minY = Infinity, maxY = -Infinity;
+    // Project the ship's oriented bounding box corners; report its largest
+    // on-screen extent (height or wingspan) as a fraction of the view height.
+    let minY = Infinity, maxY = -Infinity, minX = Infinity, maxX = -Infinity;
     let k = 0;
     for (const x of [bounds.min.x, bounds.max.x]) for (const y of [bounds.min.y, bounds.max.y]) for (const z of [bounds.min.z, bounds.max.z]) {
       corners[k].set(x, y, z).applyMatrix4(shipObject.matrixWorld);
       ndc.copy(corners[k]).project(cam);
       minY = Math.min(minY, ndc.y); maxY = Math.max(maxY, ndc.y);
+      minX = Math.min(minX, ndc.x); maxX = Math.max(maxX, ndc.x);
       k++;
     }
-    return Math.max(0, (maxY - minY) / 2);
+    return Math.max(0, (maxY - minY) / 2, ((maxX - minX) / 2) * cam.aspect);
   }
 
   return {
@@ -101,10 +103,11 @@ export function createCinematicCamera(camera) {
       const speedFactor = THREE.MathUtils.clamp((s.speed - 14) / 26, 0, 1);
       const base = distanceForFraction(o.radius, profile.target, camera.fov);
       let distance = base * state.feedback * state.baseZoom * state.zoom * state.actionZoom * (1 + speedFactor * 0.12);
-      // Hard composition limits: never closer than maxFraction, never tinier than minFraction.
+      // Sanity bounds only; the 4-11% composition limits are enforced on the
+      // measured screen size by the feedback below.
       distance = THREE.MathUtils.clamp(distance,
-        distanceForFraction(o.radius, CAMERA.maxFraction, camera.fov),
-        distanceForFraction(o.radius, CAMERA.minFraction, camera.fov));
+        distanceForFraction(o.radius, 0.3, camera.fov),
+        distanceForFraction(o.radius, 0.012, camera.fov));
 
       const viewYaw = s.yaw + s.lookYaw;
       // Looking up (positive lookPitch) lowers the camera so the view tilts up.
@@ -166,9 +169,13 @@ export function createCinematicCamera(camera) {
       // Screen-space validation and gentle correction toward the target.
       if (o.shipObject && o.bounds) {
         state.measured = measure(o.shipObject, o.bounds, camera);
-        if (state.measured > 0.002 && state.zoom === 1 && state.actionZoom > 0.98) {
-          const ratio = state.measured / profile.target;
-          state.feedback = THREE.MathUtils.clamp(state.feedback * Math.pow(ratio, Math.min(1, dt * 0.6)), 0.6, 1.7);
+        // Converge on the target; the player's zoom may vary it, but never
+        // beyond the locked limits (never a close chase view, never lost).
+        const goal = THREE.MathUtils.clamp(profile.target / (state.zoom * state.baseZoom * state.actionZoom), CAMERA.minFraction, CAMERA.maxFraction);
+        if (state.measured > 0.002) {
+          // Equilibrium: measured size == goal (zoom already lives in goal).
+          const ratio = state.measured / goal;
+          state.feedback = THREE.MathUtils.clamp(state.feedback * Math.pow(ratio, Math.min(1, dt * 0.8)), 0.25, 4);
         }
       }
       return { worldPosition: state.position, distance, fraction: state.measured, profile };

@@ -31,3 +31,15 @@ Official P0 SDK render/input/save/relay/asset bundling not yet audited, platform
 - **ONE-STICK assisted flight is now the primary control design.** Left stick steers yaw/pitch, auto-cruise provides forward momentum without continuously holding RT; LT brakes; RT or RB boosts; camera follows automatically. Right stick is OPTIONAL look, gently recentering on release. Keyboard and touch maps share this handling.
 - ABZÛ references **visual atmosphere first**; its mandatory two-stick plus RT input is explicitly rejected. REA remains a lawful, optional research tool for flight smoothing rather than a reason to copy ABZÛ control bindings.
 - See `docs/FLIGHT_CONTROLS_LOCKED.md` and `docs/P0_LOT_323.md`.
+
+## Update 2026-10-24 — M1 "Outer Verge" implementation decisions (dev/m1-outer-verge)
+- **Camera locked to a distant cinematic follow** (handoff v2, CAMERA_WIDE_FOLLOW_LOCKED): ship ~4-9% of viewport height on desktop, 5-11% on phones; distance solved from the ship's bounding sphere and FOV, corrected by the measured projected height. No close chase view (hard clamp at 11%).
+- **Floating origin**: Project 0 keeps the experience camera near the lot and fills the screen only while the camera is inside the 16 × 16 × 30 m box, so the camera stays at the lot centre and the universe moves. The sector is ~5 km wide; the lot does not limit gameplay space.
+- **All UI is canvas-drawn** (OffscreenCanvas texture + GPU sprites): Project 0 runs experiences in a Web Worker with no DOM. The same module runs in the standalone host.
+- **Input**: one-stick steering (+ auto-cruise) on every device; keyboard Shift/Space boost, C brake, Q scan, E collect/dock (Enter/Esc/Ctrl avoided); Xbox layout as briefed; touch via a floating stick and right-thumb buttons. Project 0 pointer events have no pointer id (verified), so fingers are matched by their previous endpoint.
+- **Economy stays in game resources**: Cryon (crystal) and Ferrite (ore) collected in flight, delivered to the station bank, spent on module crafting and base modules. ATT vessel prices are inert placeholders; only the free Survivor is selectable.
+- **Mission "First Light"** proves the loop: 6 Cryon from two crystal asteroids → dock → station power restored → hangar upgrades unlocked. Nodes regrow after 4 minutes for free exploration.
+- **Persistence** via `p0.saved` / `p0.save` (≤ 16 KB, sanitised on load, never trusted for anything of value). **Presence**: other session players are drawn as small ships from `p0.players` (positions mapped into the lot box and back).
+- **Quality**: High (bloom, MSAA, 1024 sky), Medium (phones), Low (software renderer / slow devices); dynamic resolution; shaders compile at warm-up, never mid-game.
+- **Shared modules renamed .mjs → .js** for the Project 0 package rule; three pinned to r186 (the city's version).
+- Lot #323 street build: slender launch beacon with live neon shaders (validated, not published). Lot #696 untouched.

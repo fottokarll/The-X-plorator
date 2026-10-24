@@ -809,6 +809,7 @@ export async function createGame(p0) {
         step: profile.mission.step, cargo: { ...profile.cargo }, bank: { ...profile.bank }, scanned: [...profile.mission.scanned],
         target, targetId: obj.target, kind: obj.kind, scanRange: stats.scanRange, scanning: Boolean(scanning), mining: Boolean(mining),
         interact: interactState(), fraction: camRig.state.measured, quality: qualityName,
+        equipped: { ...profile.equipped }, inventory: [...profile.inventory], powered: profile.powered,
       };
     },
   };

@@ -97,6 +97,27 @@ while (Date.now() < deadline) {
   await page.waitForTimeout(90);
 }
 await releaseAll();
+// Optional: spend the delivered Cryon in the hangar (craft + equip Ion Drive II).
+if (ok && args.includes('--hangar')) {
+  await tap('Space'); // 'Open Hangar' is the default focus on the completion panel
+  await page.waitForFunction(() => window.__xpGame.debugState().top === 'hangar', null, { timeout: 8000 });
+  await page.waitForTimeout(1500);
+  await shot('07-hangar');
+  const box = await page.evaluate(() => { const r = window.__xpGame.ui; return r.view; });
+  // Action button in the detail panel (desktop layout): computed from the same layout rules.
+  const u = Math.max(0.78, Math.min(1.6, Math.min(box.w / 1280, box.h / 720)));
+  const pad = Math.round(16 * u);
+  const detailW = Math.max(300 * u, box.w * 0.25), detailX = box.w - pad * 1.5 - detailW;
+  const top = Math.max(58, pad), midY = top + 54 * u + 6 * u, bottomH = Math.max(150 * u, box.h * 0.25);
+  const invY = box.h - pad - bottomH, midH = invY - midY - 12 * u;
+  const btn = { x: detailX + detailW / 2, y: midY + midH - 46 * u - 34 * u + 23 * u };
+  await page.mouse.click(btn.x, btn.y); await page.waitForTimeout(700); // craft
+  await page.mouse.click(btn.x, btn.y); await page.waitForTimeout(1500); // equip
+  const after = await state();
+  note(`hangar: engine level ${after.equipped.engine}, inventory ${after.inventory.join(',')}, bank ${after.bank.cryon} Cryon`);
+  await shot('08-hangar-upgraded');
+  if (after.equipped.engine !== 2) { ok = false; note('FAIL: Ion Drive II not equipped'); }
+}
 const final = await state();
 fs.writeFileSync(path.join(out, 'playtest.json'), JSON.stringify({ ok, final, errors, log }, null, 2));
 note(`${ok ? 'PASS' : 'FAIL'} · bank ${final.bank.cryon} Cryon / ${final.bank.ferrite} Ferrite · errors ${errors.length}`);

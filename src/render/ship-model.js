@@ -232,8 +232,9 @@ export function buildShip({ vessel = 'survivor', loadout = defaultLoadout() } = 
   sockets.hull = new THREE.Vector3(0.62 * span, 0, -0.45 * len);
 
   // Engine module: nacelles and nozzles.
-  const engineR = (0.12 + (L.engine - 1) * 0.022) * Math.min(by, 1.25);
-  const engineLen = 0.82 + (L.engine - 1) * 0.12;
+  // Each engine level is visibly bigger; Lv 2+ adds a cyan intake ring, Lv 3 a third engine.
+  const engineR = (0.12 + (L.engine - 1) * 0.04) * Math.min(by, 1.25);
+  const engineLen = 0.82 + (L.engine - 1) * 0.22;
   const enginePositions = [];
   const count = shape.engines + (L.engine >= 3 && shape.engines === 2 ? 1 : 0);
   if (count === 3) enginePositions.push([-0.42 * bx, 0], [0, 0.05], [0.42 * bx, 0]);
@@ -251,6 +252,7 @@ export function buildShip({ vessel = 'survivor', loadout = defaultLoadout() } = 
     hullParts.push(paint(cylinderZ(engineR, engineR * 1.05, tail + engineLen * 0.05, tail - 0.1, x, y, 10), C.grey));
     // Nozzle: amber core ring + cyan inner disk.
     glowParts.push(paint(cylinderZ(engineR * 0.82, engineR * 0.82, tail - 0.1, tail - 0.13, x, y, 10), GLOW.amber));
+    if (L.engine >= 2) glowParts.push(paint(cylinderZ(engineR * 1.06, engineR * 1.06, tail + engineLen * 0.62, tail + engineLen * 0.58, x, y, 10), GLOW.cyan));
     nozzles.push(new THREE.Vector3(x, y, tail - 0.16));
   }
   sockets.engine = new THREE.Vector3(Math.abs(enginePositions[enginePositions.length - 1][0]), 0, tail + 0.1);
