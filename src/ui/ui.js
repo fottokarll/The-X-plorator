@@ -9,7 +9,7 @@ import { createTouchFlightController } from '../input/touch.js';
  * sprites(overlay, view), pointerDown/Move/Up(contact, event), modal,
  * menuInput (true: arrows/confirm navigate instead of steering), dimBelow.
  */
-export function createUi({ overlay }) {
+export function createUi({ overlay, onActivate = null }) {
   const reg = createRegistry();
   const contacts = createContactTracker();
   const state = { focus: null, hover: null, pressed: null };
@@ -58,6 +58,7 @@ export function createUi({ overlay }) {
 
   function activate(item) {
     if (!item || !item.enabled) return;
+    onActivate?.(item.id);
     top()?.onAction?.(item.id, item.data);
     dirty = true;
   }

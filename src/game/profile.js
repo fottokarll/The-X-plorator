@@ -21,6 +21,8 @@ export function defaultSettings() {
     reducedMotion: false,
     cameraZoom: 1,
     hints: true,
+    sound: true,
+    music: true,
     bindings: sanitizeBindings(DEFAULT_BINDINGS),
   };
 }
@@ -97,6 +99,8 @@ export function sanitizeProfile(raw) {
   p.settings.reducedMotion = Boolean(s.reducedMotion);
   p.settings.cameraZoom = num(s.cameraZoom, 0.8, 1.25, 1);
   p.settings.hints = s.hints !== false;
+  p.settings.sound = s.sound !== false;
+  p.settings.music = s.music !== false;
   p.settings.bindings = sanitizeBindings(s.bindings);
   return p;
 }

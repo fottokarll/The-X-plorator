@@ -13,6 +13,7 @@ import { createWorld } from '../render/world.js';
 import { createPipeline, detectSoftwareRenderer, QUALITY } from '../render/pipeline.js';
 import { buildShip } from '../render/ship-model.js';
 import { createFxLayer } from '../render/fx.js';
+import { createAudio } from './audio.js';
 import { createOverlay } from '../ui/overlay.js';
 import { createUi } from '../ui/ui.js';
 import { viewInfo } from '../ui/kit.js';
@@ -86,7 +87,8 @@ export async function createGame(p0) {
   const pipeline = createPipeline({ renderer, scene, camera, overlay });
   pipeline.setQuality(qualityName);
   const camRig = createCinematicCamera(camera);
-  const ui = createUi({ overlay });
+  const audio = createAudio(p0);
+  const ui = createUi({ overlay, onActivate: () => audio.play('ui', game.time) });
 
   const input = createInputHub({
     getKeys: () => p0.input?.keys ?? new Set(),
@@ -257,6 +259,7 @@ export async function createGame(p0) {
         scanning = null;
         camRig.setActionZoom(1);
         onScanned(profile, node);
+        audio.play('scanDone', game.time);
         const purity = 72 + Math.round(((node.position[0] * 13 + node.position[2] * 7) % 25 + 25) % 25);
         scanCard = {
           id: node.id + game.time.toFixed(1), type: node.type, until: game.time + 5,
@@ -277,6 +280,7 @@ export async function createGame(p0) {
         if (r.amount > 0) {
           world.field.setNodeAmount(node.id, 0);
           toast(`+${r.amount} ${RESOURCES[r.key].label}`, RESOURCES[r.key].color);
+          audio.play('collect', game.time);
           fx.burst(node.position, node.type === 'crystal' ? [0.45, 0.9, 1] : [1, 0.7, 0.3]);
         }
         if (r.full) toast('Cargo hold full · return to Haven Outpost', '#F8BD78');
@@ -305,6 +309,7 @@ export async function createGame(p0) {
   function doScan() {
     if (mode !== 'flight' || scanning) return;
     fx.pulse(v3(flight.position), stats.scanRange);
+    if (!preferredNode(stats.scanRange)) audio.play('scan', game.time);
     const target = preferredNode(stats.scanRange, n => !profile.mission.scanned.includes(n.id)) ?? preferredNode(stats.scanRange);
     if (!target) { toast(`No signal within ${formatDistance(stats.scanRange)}`, '#E5A1CF'); return; }
     if (profile.mission.scanned.includes(target.node.id)) {
@@ -314,6 +319,7 @@ export async function createGame(p0) {
     }
     scanning = { node: target.node, t: 0, duration: stats.scanTime };
     camRig.setActionZoom(0.9);
+    audio.play('scan', game.time);
   }
 
   function doInteract() {
@@ -363,6 +369,7 @@ export async function createGame(p0) {
       flight.speed = 0;
       camRig.setActionZoom(0.9);
       const r = onDocked(profile);
+      audio.play('dock', game.time);
       const parts = [];
       if (r.delivered.cryon) parts.push(`${r.delivered.cryon} Cryon`);
       if (r.delivered.ferrite) parts.push(`${r.delivered.ferrite} Ferrite`);
@@ -380,6 +387,7 @@ export async function createGame(p0) {
     if (profile.mission.step === 'complete') profile.mission.step = 'free';
     const from = v3(flight.position);
     launching = { t: 0, from, to: from.clone().add(new THREE.Vector3(0, 7, 28)) };
+    audio.play('launch', game.time);
     mode = 'launching';
     camRig.setActionZoom(1);
     saveSoon();
@@ -779,6 +787,7 @@ export async function createGame(p0) {
       input.setBindings(profile.settings.bindings);
       input.setOptions({ invert: profile.settings.invertY, sens: profile.settings.sensitivity });
       camRig.setBaseZoom(profile.settings.cameraZoom);
+      audio.configure({ sound: profile.settings.sound, musicEnabled: profile.settings.music });
       applyStats();
       if (!changed || changed === 'quality') {
         const next = resolveQuality(profile.settings.quality);
@@ -891,6 +900,7 @@ export async function createGame(p0) {
   }
   p0.log?.(`[xplorator] renderer=${soft.name} quality=${qualityName} warmup=${Math.round(warmMs)}ms`);
   try { p0.hud?.(input.device === 'touch' ? HELP_TEXT_TOUCH : HELP_TEXT); } catch { /* optional */ }
+  audio.configure({ sound: profile.settings.sound, musicEnabled: profile.settings.music });
   loading(1, 'Outer Verge');
   // Let the final progress message reach the host before start() resolves.
   await new Promise(resolve => setTimeout(resolve, 60));

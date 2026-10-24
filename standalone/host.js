@@ -111,10 +111,58 @@ const p0 = {
   get height() { return window.innerHeight; },
   get pixelRatio() { return pixelRatio(); },
   get time() { return (performance.now() - start0) / 1000; },
-  sound: { play: () => 0, stop() {}, pause() {}, resume() {}, stopAll() {}, pauseAll() {}, resumeAll() {} },
-  music: { play() {}, stop() {}, volume() {}, seek() {}, time: 0, playing: false, duration: 0 },
+  sound: null, // WebAudio implementation below
+  music: null,
   game: null,
 };
+// ---------------------------------------------------------------- audio
+// WebAudio stand-in for p0.sound / p0.music (Project 0 plays package files the
+// same way). Starts after the first click or key, as browsers require.
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const buffers = new Map();
+const playing = new Map();
+let nextSound = 1;
+const load = path => {
+  if (!buffers.has(path)) buffers.set(path, fetch(`/${path}`).then(r => r.arrayBuffer()).then(b => audioCtx.decodeAudioData(b)));
+  return buffers.get(path);
+};
+function startSource(path, { volume = 1, loop = false, rate = 1, at = 0 } = {}, id = nextSound++) {
+  load(path).then(buffer => {
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer; src.loop = loop; src.playbackRate.value = rate;
+    const gain = audioCtx.createGain();
+    gain.gain.value = volume;
+    src.connect(gain).connect(audioCtx.destination);
+    src.start(0, at % buffer.duration);
+    src.onended = () => playing.delete(id);
+    playing.set(id, { src, gain });
+  }).catch(e => console.warn('audio', path, e));
+  return id;
+}
+const stopId = id => { const p = playing.get(id); if (p) { try { p.src.stop(); } catch { /* ended */ } playing.delete(id); } };
+let musicId = null;
+p0.sound = {
+  play: (path, opts) => startSource(path, opts),
+  stop: stopId,
+  pause: id => playing.get(id) && audioCtx.suspend(),
+  resume: () => audioCtx.resume(),
+  stopAll: () => { for (const id of [...playing.keys()]) if (id !== musicId) stopId(id); },
+  pauseAll: () => audioCtx.suspend(),
+  resumeAll: () => audioCtx.resume(),
+};
+p0.music = {
+  play(path, { volume = 1, loop = true, at = 0 } = {}) { if (musicId) stopId(musicId); musicId = startSource(path, { volume, loop, at }); },
+  stop() { if (musicId) stopId(musicId); musicId = null; },
+  volume(v) { const p = playing.get(musicId); if (p) p.gain.gain.value = v; },
+  seek() {},
+  get playing() { return musicId !== null && audioCtx.state === 'running'; },
+  time: 0,
+  duration: 0,
+};
+const unlockAudio = () => { if (audioCtx.state !== 'running') audioCtx.resume(); };
+window.addEventListener('pointerdown', unlockAudio);
+window.addEventListener('keydown', unlockAudio);
+
 // Project 0's scene comes with a hemisphere light.
 p0.scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1));
 window.__p0 = p0; // for local test scripts only

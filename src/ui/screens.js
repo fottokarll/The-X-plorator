@@ -272,6 +272,8 @@ function settingsScreen(game) {
       { id: 'sensitivity', label: 'Steering sensitivity', value: s.sensitivity, values: [0.6, 0.8, 1, 1.2, 1.4], show: v => `${Math.round(v * 100)}%` },
       { id: 'cameraZoom', label: 'Camera distance', value: s.cameraZoom, values: [1.2, 1, 0.85], show: v => (v > 1.1 ? 'Wide' : v < 0.95 ? 'Close' : 'Standard') },
       { id: 'reducedMotion', label: 'Reduced motion', value: s.reducedMotion, values: [false, true], show: v => (v ? 'On' : 'Off') },
+      { id: 'sound', label: 'Sound effects', value: s.sound, values: [true, false], show: v => (v ? 'On' : 'Off') },
+      { id: 'music', label: 'Ambient music', value: s.music, values: [true, false], show: v => (v ? 'On' : 'Off') },
     ];
   };
   function cycle(opt, dir = 1) {
@@ -317,14 +319,19 @@ function settingsScreen(game) {
       const rowH = (phone ? 36 : 40) * u;
       const showKeysInline = !phone && !portrait && pw > 860 * u;
       if (page === 'main') {
-        const colW = showKeysInline ? pw / 2 - 42 * u : pw - 56 * u;
+        // Short landscape phones use two columns of options.
+        const cols = phone && !portrait ? 2 : 1;
+        const perCol = Math.ceil(options().length / cols);
+        const colW = showKeysInline ? pw / 2 - 42 * u : (pw - 56 * u - (cols - 1) * 24 * u) / cols;
         options().forEach((o, i) => {
-          const y = py + 62 * u + i * (rowH + 6 * u);
-          text(ctx, o.label, px + 28 * u, y + rowH / 2, { size: 13 * u, color: COLORS.dim });
-          const bw = Math.min(190 * u, colW * 0.48);
-          button(ctx, reg, o.id, px + 28 * u + colW - bw, y, bw, rowH, o.show(o.value), { state, u, small: true });
+          const col = Math.floor(i / perCol), row = i % perCol;
+          const x = px + 28 * u + col * (colW + 24 * u);
+          const y = py + 62 * u + row * (rowH + 6 * u);
+          text(ctx, o.label, x, y + rowH / 2, { size: 13 * u, color: COLORS.dim, maxWidth: colW * 0.5 });
+          const bw = Math.min(190 * u, colW * 0.46);
+          button(ctx, reg, o.id, x + colW - bw, y, bw, rowH, o.show(o.value), { state, u, small: true });
         });
-        const after = py + 62 * u + options().length * (rowH + 6 * u) + 6 * u;
+        const after = py + 62 * u + perCol * (rowH + 6 * u) + 6 * u;
         if (!showKeysInline) button(ctx, reg, 'keys', px + 28 * u, after, Math.min(260 * u, colW), rowH, 'Keyboard bindings', { state, icon: 'settings', u, small: true, align: 'left' });
         if (game.software?.software) text(ctx, 'Software renderer detected: the light version is active.', px + 28 * u, after + rowH + 18 * u, { size: 11 * u, color: COLORS.gold });
         if (showKeysInline) drawKeys(ctx, reg, state, view, px + pw / 2 + 14 * u, py + 62 * u, pw / 2 - 42 * u, rowH * 0.78);
