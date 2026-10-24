@@ -45,6 +45,7 @@ const page = await context.newPage();
 const logs = [], errors = [];
 page.on('console', m => { const t = `${m.type()}: ${m.text()}`; logs.push(t); if (m.type() === 'error') errors.push(t); });
 page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+page.on('response', r => { if (r.status() >= 400) errors.push(`http ${r.status()}: ${r.url()}`); });
 const report = { size: `${W}x${H}`, touch, steps: [], fps: [] };
 
 const resolveXY = (x, y) => [x < 0 ? W + x : x, y < 0 ? H + y : y];

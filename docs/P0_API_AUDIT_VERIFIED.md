@@ -94,7 +94,8 @@ Lot #696 (STARBOX) was listed in the same response and was **not touched**.
 
 | What | Result |
 |---|---|
-| Experience package (36 files, 305 KB) | **HTTP 200, `ok: true`, 0 errors, 0 warnings, 0 findings**, candidate hash `d2ca06e64ae8459a` (later revisions revalidate with `npm run p0:validate`) |
+| Experience package, first build (36 files, 305 KB) | **HTTP 200, `ok: true`, 0 errors, 0 warnings, 0 findings**, candidate hash `d2ca06e64ae8459a` |
+| Experience package with audio (44 files, 1.69 MB) | **HTTP 200, `ok: true`, 0 errors, 0 warnings**, candidate hash `0f5893a94559ad70` (revalidate any later revision with `npm run p0:validate`) |
 | Street build LOD0/1/2 | **HTTP 200, `ok: true`, 0 errors, 0 warnings** (see docs/LOT_323_BUILD.md) |
 
 A validation hash is **not** a published version. Nothing was published; no `/status`, `/box`,

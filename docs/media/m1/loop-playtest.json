@@ -1,0 +1,76 @@
+{
+  "ok": true,
+  "final": {
+    "mode": "hangar",
+    "top": "hangar",
+    "pos": [
+      7.794228634059948,
+      3.8000000000000003,
+      13.5
+    ],
+    "yaw": 0,
+    "pitch": 0,
+    "speed": 0,
+    "step": "complete",
+    "cargo": {
+      "cryon": 0,
+      "ferrite": 0
+    },
+    "bank": {
+      "cryon": 0,
+      "ferrite": 0
+    },
+    "scanned": [
+      "cryon-a",
+      "cryon-b"
+    ],
+    "target": null,
+    "targetId": null,
+    "kind": "none",
+    "scanRange": 150,
+    "scanning": false,
+    "mining": false,
+    "interact": null,
+    "fraction": 0.06435444855431081,
+    "quality": "high",
+    "equipped": {
+      "engine": 2,
+      "hull": 1,
+      "reactor": 1,
+      "scanner": 1,
+      "cargo": 1,
+      "shield": 1,
+      "miner": 1
+    },
+    "inventory": [
+      "scanner-2",
+      "engine-2"
+    ],
+    "powered": true
+  },
+  "errors": [],
+  "log": [
+    "[12.6s] flight started",
+    "[13.9s] mission step: locate (cargo 0 Cryon)",
+    "[25.1s] mission step: scan (cargo 0 Cryon)",
+    "[25.8s] scan cryon-a at 149 u",
+    "[28.3s] mission step: collect (cargo 0 Cryon)",
+    "[38.1s] unsticking",
+    "[39.2s] collect cryon-a at 76 u",
+    "[42.4s] mission step: locate (cargo 3 Cryon)",
+    "[60.5s] mission step: scan (cargo 3 Cryon)",
+    "[61.3s] scan cryon-b at 149 u",
+    "[62.8s] mission step: collect (cargo 3 Cryon)",
+    "[72.0s] unsticking",
+    "[73.2s] collect cryon-b at 77 u",
+    "[75.5s] mission step: return (cargo 6 Cryon)",
+    "[80.0s] unsticking",
+    "[115.1s] unsticking",
+    "[122.2s] unsticking",
+    "[123.2s] mission step: dock (cargo 6 Cryon)",
+    "[123.4s] dock at 67 u",
+    "[127.6s] mission step: complete (cargo 0 Cryon)",
+    "[127.6s] MISSION COMPLETE panel shown",
+    "[133.9s] hangar: engine level 2, inventory scanner-2,engine-2, bank 0 Cryon"
+  ]
+}
