@@ -106,8 +106,13 @@ Lot #696 (STARBOX) was listed in the same response and was **not touched**.
 | Street build LOD0/1/2, final M1 commit | **HTTP 200, `ok: true`**, every LOD 0 errors / 0 warnings |
 | Street build LOD0/1/2 | **HTTP 200, `ok: true`, 0 errors, 0 warnings** (see docs/LOT_323_BUILD.md) |
 
-A validation hash is **not** a published version. Nothing was published; no `/status`, `/box`,
-`/note`, `/game` or `/event` call was made.
+A validation hash is **not** a published version. On 24 Oct 2026, with the owner's approval, the street
+build and experience `2ad35ac72d7916ec` were published to lot 323 (both `200 live`, the review gave no
+warnings; see docs/P0_PUBLISH_CHECKLIST.md). No `/status`, `/box`, `/note`, `/game` or `/event` call was
+made.
+
+Observed live: guests' `p0.save` answers HTTP 401 (`ok: false`, as documented); the city draws a round
+fullscreen button in the top-left corner of the experience (~48 px); Enter opens the city chat.
 
 ## Not verified / out of scope for M1
 

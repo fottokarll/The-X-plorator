@@ -1,6 +1,18 @@
 # Changelog
 
-## 0.2.0-m1 — 2026-10-24 (branch `dev/m1-outer-verge`, not published)
+## 0.2.1-m1 — 2026-10-24 (branch `dev/m1-outer-verge`)
+
+### Published
+- Lot #323 is live with the owner's approval: street build `02a57ea8b72b7df5-dc28e6a7f6bd1a2c` and
+  experience `2ad35ac72d7916ec` (from `f337a9f`). The review passed with no warnings.
+- Lot description: adds "Fly up and press Enter to play".
+- `tools/p0-publish.mjs` (lot 323 only) and `tools/live-visit.mjs` (guest visit of the live lot).
+
+### Fixed (validated, not yet republished)
+- The desktop flight HUD counters start below the city's fullscreen button in the top-left corner.
+- Vessel screen: confirming the already selected Survivor starts the journey.
+
+## 0.2.0-m1 — 2026-10-24 (branch `dev/m1-outer-verge`)
 
 First playable vertical slice, "Outer Verge".
 

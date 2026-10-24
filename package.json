@@ -13,7 +13,9 @@
     "lot:validate": "node lot/validate-lot.mjs",
     "package": "node tools/package-experience.mjs",
     "p0:validate": "node tools/p0-validate.mjs",
-    "lab": "python3 -m http.server 8080"
+    "lab": "python3 -m http.server 8080",
+    "p0:publish": "node tools/p0-publish.mjs",
+    "live:visit": "node tools/live-visit.mjs"
   },
   "description": "Project 0 City browser space game — preproduction tooling",
   "dependencies": {

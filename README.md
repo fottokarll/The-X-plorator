@@ -1,7 +1,7 @@
 # THE X-PLORATOR 🚀
 
 **A serene cosmic exploration and colony-building game for Project 0 City (lot #323) and the browser.**
-Status: **M1 "Outer Verge" playable prototype** (branch `dev/m1-outer-verge`), not yet published.
+Status: **M1 "Outer Verge" playable prototype** (branch `dev/m1-outer-verge`), **live on Project 0 lot #323** since 24 Oct 2026 (https://project0.city/lot/323).
 
 Humanity flees a devastated Earth. As pilot of a small evacuation ship, explore a luminous blue-violet
 galaxy, scan and collect resources, upgrade your modular spacecraft, build hexagonal orbital bases and
@@ -35,7 +35,7 @@ What was built and verified: **[MORNING_REPORT.md](MORNING_REPORT.md)**.
   controller support.
 - **Project 0 ready**: the same module runs in the city's sandbox (verified in the official dev kit and
   by server validation for lot #323) and in a standalone browser host. A street build for lot #323 (a
-  launch beacon with live shaders) is also built and validated. **Nothing is published yet.**
+  launch beacon with live shaders) is live too. Both were published with the owner's approval.
 
 ## Art direction (locked)
 

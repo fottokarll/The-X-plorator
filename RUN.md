@@ -102,5 +102,6 @@ P0_KEY_FILE=/path/to/your/key LD_LIBRARY_PATH= npm run p0:validate
 P0_KEY_FILE=/path/to/your/key LD_LIBRARY_PATH= npm run lot:validate
 ```
 
-Publishing to lot #323 is documented in `docs/P0_PUBLISH_CHECKLIST.md` and requires your explicit
-approval. Lot #696 (STARBOX) is never used by these tools.
+Publishing to lot #323 (`tools/p0-publish.mjs`, lot 323 only) is documented in
+`docs/P0_PUBLISH_CHECKLIST.md`; every publish needs your explicit approval. Lot #696 (STARBOX) is never
+used by these tools. `node tools/live-visit.mjs` visits the live lot as a guest and takes screenshots.

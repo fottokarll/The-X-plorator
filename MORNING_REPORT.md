@@ -2,9 +2,45 @@
 
 Good morning! **You have a genuinely playable first version.** It runs in your browser and inside
 Project 0's official sandbox, on desktop and phones. It passes Project 0's server validation for
-lot #323. **Nothing was published**, no ATT was touched and lot #696 (STARBOX) was never modified.
+lot #323. No ATT was touched and lot #696 (STARBOX) was never modified.
+
+> **Update, 24 Oct 2026 (morning): published to lot #323 on your go-ahead.** Both parts passed
+> Project 0's review and are **live**. Details in [Publication](#publication-24-oct-2026).
 
 ![Flight at 1920×1080: real render](docs/media/m1/desktop-1920-flight.jpg)
+
+## Publication (24 Oct 2026)
+
+Published from commit `f337a9f` (game code unchanged) with `tools/p0-publish.mjs`, which only
+accepts lot 323. Both parts were rebuilt and revalidated first (0 errors, 0 warnings).
+
+| | Result |
+|---|---|
+| Street build "THE X-PLORATOR · Launch Beacon" | `200 live`, reviewed, version `02a57ea8b72b7df5-dc28e6a7f6bd1a2c`. LOD0 19,264 triangles, 14 draw calls (within the lot's budgets). The description now says "Fly up and press Enter to play". |
+| Experience "THE X-PLORATOR" | `200 live`, review passed with **no warnings**, version `2ad35ac72d7916ec` (44 files, 337 KB bundle). `ui: minimized` and `stick: false` are applied. |
+| Lot #696 | Unchanged (same build and experience versions before and after). |
+| Before | Lot #323 was empty, so nothing was replaced. |
+
+**Checked in the live city** (guest visit with `tools/live-visit.mjs`, desktop 1600×900 and phone
+390×844): the lot panel shows **▶ Play**. The game loads inside the city (`start()` 5.2-6.3 s on
+this PC). Menu, vessel choice, flight and scan all work with real keys, and the phone layout clears
+the city's toolbar. No game errors appeared.
+
+![Live: menu inside the city](docs/media/live/live-desktop-menu.jpg)
+
+![Live: phone vessel choice](docs/media/live/live-phone-select.jpg)
+
+Observations from the live visit:
+- **Guests cannot save** (`p0.save` answers 401 / `ok: false`, as documented). Their progress lasts
+  until they leave; signed-in players keep theirs.
+- **Enter opens the city chat**, so menus are confirmed with Space or E (already the design).
+- **Fixed on the branch, not yet live:**
+  - The city's round fullscreen button sits in the top-left corner and covered the first desktop
+    HUD counter. The counters now start below it.
+  - On the vessel screen, confirming the selected Survivor again now starts the journey (Space or E
+    twice, or a tap on its card). Before, you had to move to Start Journey (↓ then →).
+
+  These fixes are validated (`ok`, 0 warnings) and only need one republish: `node tools/p0-publish.mjs experience`.
 
 ## What was completed
 
@@ -195,12 +231,12 @@ All images below are screenshots of the running game, captured by `tools/capture
 |---|---|
 | Lot #323 identity | Verified read-only: medium tower, 16 × 16 × 30 m, empty, budgets as documented |
 | How "enterable" works | Verified. A lot has **two** things: the street build (3 LOD GLBs) and an **experience** (JS package) that players enter. The camera must stay near the lot, so the game keeps the camera at the lot centre and moves the universe around it. The sector is several km wide and the 16 m lot does not limit the game. |
-| Street build | **Ready**: built, validated `ok`. Not published. |
-| Experience | **Ready**: packaged, validated `ok`, runs in the official dev kit. Not published. |
+| Street build | **Live** since 24 Oct 2026 (see [Publication](#publication-24-oct-2026)). |
+| Experience | **Live** since 24 Oct 2026, review passed with no warnings. |
 | Multiplayer / persistence | Persistence uses the documented per-player save. Multiplayer is **presence only**: other explorers in your session appear as small ships. There is no co-op gameplay yet. |
 | Payments / ATT | None. Vessel prices are locked placeholders, and no entry price, prizes, items or events are configured. |
-| Blocked | Nothing is blocked. Publication is **waiting for your approval**: see [docs/P0_PUBLISH_CHECKLIST.md](docs/P0_PUBLISH_CHECKLIST.md) (exact commands written down, not run). |
-| Your key | Used only for one read-only lot lookup and the free validations. It was kept in a temporary file outside every repository and never printed or committed. Scripts read it from `P0_KEY_FILE`. You may want to rotate it, since it was pasted into a chat. |
+| Blocked | Nothing. Republishing is one command: see [docs/P0_PUBLISH_CHECKLIST.md](docs/P0_PUBLISH_CHECKLIST.md). |
+| Your key | Used for read-only lot lookups, the free validations and the two approved publishes. It was kept in a temporary file outside every repository and never printed or committed. Scripts read it from `P0_KEY_FILE`. You may want to rotate it, since it was pasted into a chat. |
 
 Verified API notes and observations: [docs/P0_API_AUDIT_VERIFIED.md](docs/P0_API_AUDIT_VERIFIED.md).
 
@@ -216,11 +252,10 @@ Verified API notes and observations: [docs/P0_API_AUDIT_VERIFIED.md](docs/P0_API
 
   The review profile went from about 3 fps with 5-7 s frames to about 6 fps with 2.5-4 s frames,
   always 0 errors. The remaining spikes happen in the first seconds and look like first-use pipeline
-  compilation inside SwiftShader on this 4-core PC. The games guide says such a game still goes
-  live, possibly with a "very heavy" warning.
-- The dev kit loads only `main.js`, so `experience.json`'s `"stick": false` (hide the city's touch
-  stick) and `"ui": "minimized"` are only confirmed after a real publish. The dev kit shows the
-  city's stick over our controls.
+  compilation inside SwiftShader on this 4-core PC. The real review passed with no warnings.
+- The dev kit loads only `main.js`, so it shows the city's stick over our controls. Since
+  publishing, the city confirms `"stick": false` and `"ui": "minimized"` for the live game.
+- Guests cannot save (documented platform behaviour); only signed-in players keep their progress.
 - **Collisions** are simple sphere pushes, softened by a gentle avoidance assist that steers around
   rocks ahead. The automated test pilot still circles at times near clusters.
 - **Docking** is an automatic glide onto the pad, not a manual landing.
@@ -238,11 +273,9 @@ Verified API notes and observations: [docs/P0_API_AUDIT_VERIFIED.md](docs/P0_API
 
 ## Recommended next steps
 
-1. **Play it, then approve publication to lot #323.** If you like it:
-   1. Rebuild and revalidate both packages from the approved commit.
-   2. Publish the street build and the experience (checklist commands).
-   3. Enter the lot on PC and on your phone, as a guest and signed in, to confirm `stick:false`,
-      saves and the review.
+1. **Play it live on lot #323** (done: published 24 Oct 2026). Still to do:
+   1. Republish the experience with the two small UI fixes on the branch.
+   2. Enter the lot signed in on PC and on your real phone, to confirm saves and touch.
 2. **Flight feel and loop polish from real play:**
    - smarter collision avoidance around clusters;
    - an optional manual docking assist;

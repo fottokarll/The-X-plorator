@@ -1,7 +1,7 @@
 # Lot #323 street build: THE X-PLORATOR launch beacon
 
-Status: **built and validated, NOT published.** Publishing needs the owner's explicit go-ahead.
-Lot #696 (STARBOX) and every other lot are untouched. No write endpoint was called.
+Status: **live on lot 323** since 24 Oct 2026 (owner-approved; version `02a57ea8b72b7df5-dc28e6a7f6bd1a2c`,
+see docs/P0_PUBLISH_CHECKLIST.md). Lot #696 (STARBOX) and every other lot are untouched.
 
 ## Design
 
@@ -113,9 +113,9 @@ P0_KEY_FILE=/path/to/private/keyfile node lot/validate-lot.mjs   # validate only
 On this machine, prefix node commands with `LD_LIBRARY_PATH=`. The inherited squashfs library path
 breaks TLS.
 
-## Publish (DOCUMENTED ONLY: needs the owner's explicit approval)
+## Publish (each publish needs the owner's explicit approval)
 
-Not executed. When the owner approves, publish **lot 323 only**:
+Use `tools/p0-publish.mjs street` (lot 323 only). The equivalent request:
 
 ```sh
 cd dist/lot
