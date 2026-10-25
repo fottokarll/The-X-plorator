@@ -1,0 +1,88 @@
+{
+  "date": "2026-10-25T23:26:30.282Z",
+  "browser": "Chromium (Playwright, headed GPU, autoplay allowed)",
+  "path": "standalone host p0.sound (Web Audio buffer loop, as in Project 0)",
+  "file": "assets/audio/verge-ambient.wav",
+  "sampleRate": 48000,
+  "recordedSeconds": 76.5,
+  "loopSeconds": 24,
+  "loopsCovered": 3,
+  "level": {
+    "rms": 0.1606,
+    "peak": 0.6424
+  },
+  "gaps": [],
+  "d2": {
+    "median": 0.000295,
+    "p999": 0.0015
+  },
+  "loopBoundaries": [
+    {
+      "at": 23.851,
+      "maxD2": 0.0008,
+      "ratioToP999": 0.53
+    },
+    {
+      "at": 47.851,
+      "maxD2": 0.0008,
+      "ratioToP999": 0.53
+    },
+    {
+      "at": 71.851,
+      "maxD2": 0.0008,
+      "ratioToP999": 0.53
+    }
+  ],
+  "sharpestSpikes": [
+    {
+      "at": 5.763,
+      "d2": 0.0019,
+      "ratioToP999": 1.27,
+      "nearLoopBoundaryMs": 18087.5
+    },
+    {
+      "at": 29.763,
+      "d2": 0.0019,
+      "ratioToP999": 1.27,
+      "nearLoopBoundaryMs": 5912.5
+    },
+    {
+      "at": 53.763,
+      "d2": 0.0019,
+      "ratioToP999": 1.27,
+      "nearLoopBoundaryMs": 5912.5
+    },
+    {
+      "at": 5.695,
+      "d2": 0.00183,
+      "ratioToP999": 1.22,
+      "nearLoopBoundaryMs": 18155.7
+    },
+    {
+      "at": 29.695,
+      "d2": 0.00183,
+      "ratioToP999": 1.22,
+      "nearLoopBoundaryMs": 5844.3
+    },
+    {
+      "at": 53.695,
+      "d2": 0.00183,
+      "ratioToP999": 1.22,
+      "nearLoopBoundaryMs": 5844.3
+    },
+    {
+      "at": 1.732,
+      "d2": 0.00181,
+      "ratioToP999": 1.21,
+      "nearLoopBoundaryMs": 22118.8
+    },
+    {
+      "at": 25.732,
+      "d2": 0.00181,
+      "ratioToP999": 1.21,
+      "nearLoopBoundaryMs": 1881.2
+    }
+  ],
+  "errors": [],
+  "wallSeconds": 235.3
+}
