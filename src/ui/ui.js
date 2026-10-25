@@ -22,6 +22,8 @@ export function createUi({ overlay, onActivate = null, onScreen = null }) {
   let lastPointerTouch = false;
   // After a screen change, a still-held confirm button must not activate again.
   let confirmGuard = 0;
+  // Developer overlay drawn above every screen (performance report).
+  let devOverlay = null;
 
   // Touch flight controls feed the existing pure touch controller.
   const touchCtrl = createTouchFlightController({ stickRadius: 58, lookRadius: 150, deadzone: 0.08 });
@@ -55,6 +57,7 @@ export function createUi({ overlay, onActivate = null, onScreen = null }) {
       if (!isTop) { const saved = reg.items.length; s.draw(ctx, view, reg, {}); reg.items.length = saved; return; }
       s.draw(ctx, view, reg, state);
     });
+    if (devOverlay?.enabled) { try { devOverlay.draw(ctx, view); } catch { /* dev only */ } }
     sinceDraw = 0;
     dirty = false;
   }
@@ -111,6 +114,7 @@ export function createUi({ overlay, onActivate = null, onScreen = null }) {
     is(id) { return top()?.id === id; },
     has(id) { return stack.some(s => s.id === id); },
     invalidate() { dirty = true; },
+    setDevOverlay(o) { devOverlay = o; dirty = true; },
     get menuInput() { return Boolean(top()?.menuInput); },
     focus(id) { state.focus = id; dirty = true; },
 
@@ -141,6 +145,8 @@ export function createUi({ overlay, onActivate = null, onScreen = null }) {
         state.pressed = item.id;
         state.focus = item.focusable ? item.id : state.focus;
         if (item.hold) { touchCtrl.down(contact.id, item.id, event.x, event.y); contactRole.set(contact.id, item.id); }
+        // Sliders follow the finger or mouse from the first touch.
+        if (item.drag) { s?.onItemDrag?.(item.id, event.x, item.data); contact.fired = true; }
         // Tap-type flight buttons fire on press for responsiveness.
         if (s?.pressActions?.includes(item.id)) { touchEdges.push(item.id); contact.fired = true; }
         dirty = true;
@@ -160,6 +166,10 @@ export function createUi({ overlay, onActivate = null, onScreen = null }) {
       }
       if (!contact) { top()?.pointerHover?.(event); return; }
       if (contactRole.has(contact.id)) touchCtrl.move(contact.id, event.x, event.y);
+      if (contact.itemId) {
+        const item = reg.find(contact.itemId);
+        if (item?.drag) { top()?.onItemDrag?.(item.id, event.x, item.data); dirty = true; return; }
+      }
       top()?.pointerMove?.(contact, event);
     },
     pointerUp(event) {
@@ -197,6 +207,9 @@ export function createUi({ overlay, onActivate = null, onScreen = null }) {
     touch: {
       snapshot() {
         const snap = touchCtrl.snapshot();
+        // A mouse drag also drives the look role; only real fingers make the
+        // HUD switch to its touch layout.
+        snap.fromTouch = contacts.list().some(c => c.touch && contactRole.has(c.id));
         return snap;
       },
       takeEdges() { return touchEdges.splice(0); },

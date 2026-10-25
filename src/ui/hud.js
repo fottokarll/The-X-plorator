@@ -23,7 +23,7 @@ export function createHud(game) {
   function touchLayout(view) {
     const { w, h, u, portrait } = view;
     const big = 36 * u, mid = 29 * u;
-    const right = w - 22 * u, bottom = h - 26 * u;
+    const right = w - 22 * u - view.safeX, bottom = h - 26 * u - view.safeBottom;
     if (portrait) {
       return {
         boost: [right - big, bottom - big - 8 * u, big],
@@ -39,7 +39,7 @@ export function createHud(game) {
       brake: [right - big * 2 - mid - 16 * u, bottom - mid + 4 * u, mid],
       scan: [right - mid - 6 * u, bottom - big * 2 - mid - 26 * u, mid],
       interact: [right - big * 2 - mid - 16 * u, bottom - mid + 4 * u - mid * 2 - 36 * u, mid + 3 * u],
-      stickHome: [40 * u + 62 * u, bottom - 62 * u],
+      stickHome: [40 * u + 62 * u + view.safeX, bottom - 62 * u],
     };
   }
 
@@ -72,7 +72,7 @@ export function createHud(game) {
         ['ore', m.cargo.ferrite, COLORS.gold],
         ['cargo', `${m.cargo.used}/${m.cargo.capacity}`, COLORS.text],
       ];
-      const leftX = pad;
+      const leftX = pad + view.safeX;
       if (view.landscapePhone || !view.phone) {
         // Start below the city's fullscreen button in the top-left corner.
         const chipTop = Math.max(top, view.p0Corner);
@@ -101,27 +101,12 @@ export function createHud(game) {
       text(ctx, m.sub.toUpperCase(), w / 2, titleY + 18 * u, { size: 9.5 * u, color: COLORS.faint, align: 'center', tracking: 4 * u });
 
       // Top-right buttons.
-      const r = (view.phone ? 21 : 19) * u;
+      // Touch targets of at least 44 CSS px (radius 23).
+      const r = Math.max(view.phone ? 23 : 19 * u, (view.phone ? 23 : 19) * u);
       const ids = touch ? [['pause', 'pause'], ['map', 'map']] : [['pause', 'settings'], ['hangar', 'hangar'], ['map', 'map']];
       ids.forEach(([id, ic], i) => {
-        roundButton(ctx, reg, id, w - pad - r - i * (r * 2 + 12 * u), top + r - 4 * u, r, ic, '', { u, state, labelBelow: false });
+        roundButton(ctx, reg, id, w - pad - view.safeX - r - i * (r * 2 + 12 * u), top + r - 4 * u, r, ic, '', { u, state, labelBelow: false });
       });
-
-      // Toasts (below the title).
-      m.toasts.forEach((t, i) => {
-        const y = titleY + 44 * u + i * 30 * u;
-        const tw2 = measure(ctx, t.text, 13 * u, 500, 1.2 * u) + 34 * u;
-        panel(ctx, w / 2 - tw2 / 2, y - 12 * u, tw2, 24 * u, { r: 12 * u, fill: 'rgba(8,20,52,0.7)', stroke: t.color ?? COLORS.line });
-        text(ctx, t.text, w / 2, y, { size: 13 * u, weight: 500, align: 'center', color: t.color ?? COLORS.text, tracking: 1.2 * u });
-      });
-
-      // Boundary / warning banner.
-      if (m.warning) {
-        const y = h * 0.3;
-        const ww = measure(ctx, m.warning, 13 * u, 500, 2 * u) + 40 * u;
-        panel(ctx, w / 2 - ww / 2, y - 14 * u, ww, 28 * u, { r: 14 * u, fill: 'rgba(40,14,48,0.7)', stroke: 'rgba(229,161,207,0.7)' });
-        text(ctx, m.warning, w / 2, y, { size: 13 * u, weight: 500, align: 'center', color: COLORS.rose, tracking: 2 * u });
-      }
 
       // Objective.
       const objY = touch ? (view.portrait ? titleY + 52 * u : titleY + 40 * u) : h - pad - 118 * u;
@@ -146,6 +131,30 @@ export function createHud(game) {
         ctx.fillRect(w / 2 - ow * 0.25, objY + 31 * u, ow * 0.5 * prog, 2);
       }
 
+      // Messages stack downward from one cursor so they never overlap: on
+      // touch layouts below the objective (which sits under the title), on
+      // desktop below the title (the objective is at the bottom there).
+      let stackY = touch ? objY + 50 * u : titleY + 40 * u;
+      const maxTextW = w - pad * 2 - 30 * u;
+      if (m.warning) {
+        const ww = Math.min(maxTextW + 30 * u, measure(ctx, m.warning, 13 * u, 500, 2 * u) + 40 * u);
+        const y = touch ? stackY + 2 * u : Math.max(stackY, h * 0.3);
+        panel(ctx, w / 2 - ww / 2, y - 14 * u, ww, 28 * u, { r: 14 * u, fill: 'rgba(40,14,48,0.7)', stroke: 'rgba(229,161,207,0.7)' });
+        text(ctx, m.warning, w / 2, y, { size: 13 * u, weight: 500, align: 'center', color: COLORS.rose, tracking: 2 * u, maxWidth: ww - 24 * u });
+        if (touch) stackY = y + 34 * u;
+      }
+      const toastSize = (view.phone ? 12 : 13) * u;
+      // Short landscape phones keep the two newest, above the action prompt.
+      (view.landscapePhone ? m.toasts.slice(-2) : m.toasts).forEach(t => {
+        // Letter spacing only while the line fits; otherwise plain text, cut with an ellipsis.
+        const natural = measure(ctx, t.text, toastSize, 500, 1.2 * u);
+        const fits = natural <= maxTextW;
+        const tw2 = Math.min(maxTextW + 30 * u, (fits ? natural : measure(ctx, t.text, toastSize, 500)) + 34 * u);
+        panel(ctx, w / 2 - tw2 / 2, stackY - 12 * u, tw2, 24 * u, { r: 12 * u, fill: 'rgba(8,20,52,0.78)', stroke: t.color ?? COLORS.line });
+        text(ctx, t.text, w / 2, stackY, { size: toastSize, weight: 500, align: 'center', color: t.color ?? COLORS.text, tracking: fits ? 1.2 * u : 0, maxWidth: tw2 - 24 * u });
+        stackY += 30 * u;
+      });
+
       // Context prompt.
       if (m.prompt) {
         const py = touch ? h * (view.portrait ? 0.56 : 0.62) : h - pad - 160 * u;
@@ -165,15 +174,20 @@ export function createHud(game) {
       // Scan card.
       if (m.scanCard) {
         const c = m.scanCard;
-        const cw = 230 * u, ch = 108 * u;
-        const cx = touch ? w / 2 - cw / 2 : w - pad - cw, cy = touch ? h * 0.18 + 40 * u : h * 0.36;
+        const cw = (view.phone ? 210 : 230) * u, ch = (view.phone ? 92 : 108) * u;
+        // Desktop: right side. Phone portrait: centred under the messages.
+        // Phone landscape: left column, between the counters and the stick.
+        let cx = w - pad - cw, cy = h * 0.36;
+        if (touch && view.portrait) { cx = w / 2 - cw / 2; cy = stackY - 4 * u; }
+        else if (touch) { cx = pad + view.safeX; cy = Math.max(view.p0Corner, view.p0Top) + 88 * u; }
         panel(ctx, cx, cy, cw, ch, { r: 12 * u, glow: 10 * u });
         icon(ctx, c.type === 'crystal' ? 'crystal' : 'ore', cx + 22 * u, cy + 24 * u, 20 * u, c.type === 'crystal' ? COLORS.cyan : COLORS.gold);
         text(ctx, c.title.toUpperCase(), cx + 40 * u, cy + 24 * u, { size: 12 * u, weight: 600, tracking: 2 * u });
         text(ctx, 'SCAN COMPLETE', cx + cw - 14 * u, cy + 24 * u, { size: 9 * u, color: COLORS.ok, align: 'right', tracking: 1.5 * u });
+        const lineH = (view.phone ? 15 : 18) * u, firstY = (view.phone ? 44 : 50) * u;
         c.lines.forEach((l, i) => {
-          text(ctx, l[0], cx + 16 * u, cy + 50 * u + i * 18 * u, { size: 11.5 * u, color: COLORS.dim });
-          text(ctx, l[1], cx + cw - 16 * u, cy + 50 * u + i * 18 * u, { size: 11.5 * u, color: COLORS.text, align: 'right' });
+          text(ctx, l[0], cx + 16 * u, cy + firstY + i * lineH, { size: 11.5 * u, color: COLORS.dim });
+          text(ctx, l[1], cx + cw - 16 * u, cy + firstY + i * lineH, { size: 11.5 * u, color: COLORS.text, align: 'right' });
         });
       }
 

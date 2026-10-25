@@ -49,6 +49,10 @@ await page.waitForTimeout(1500);
 await tap('ArrowDown'); await page.waitForTimeout(150);
 let s = await state();
 if (s.top === 'select') { await tap('ArrowRight'); await page.waitForTimeout(150); await tap('Space'); }
+// M2: a pressure-free check opens ("Continue free" / "View other ships"); Continue free is focused.
+await page.waitForTimeout(400);
+s = await state();
+if (s.top === 'choice') { await tap('Space'); }
 await page.waitForFunction(() => window.__xpGame.debugState().mode === 'flight', null, { timeout: 20000 });
 note('flight started');
 await shot('01-launch');

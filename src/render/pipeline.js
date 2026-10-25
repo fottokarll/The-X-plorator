@@ -88,10 +88,14 @@ export function detectSoftwareRenderer(renderer) {
   }
 }
 
+export const BLOOM_THRESHOLD = 1.5;
+
 export function createPipeline({ renderer, scene, camera, overlay }) {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.0;
   let quality = QUALITY.high;
+  let bloomStrength = 0.85;
+  let exposure = 1.0;
   let composer = null, bloomPass = null, finalPass = null;
   let width = 1, height = 1, basePixelRatio = 1;
   let dynamicScale = 1;
@@ -103,12 +107,16 @@ export function createPipeline({ renderer, scene, camera, overlay }) {
     const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: quality.samples });
     composer = new EffectComposer(renderer, target);
     composer.addPass(new RenderPass(scene, camera));
-    bloomPass = quality.bloom ? new UnrealBloomPass(new THREE.Vector2(256, 256), 0.85, 0.65, 0.92) : null;
+    // Threshold above 1 (linear HDR): engine glows, crystals, the planet's limb
+    // and the sky bloom; sunlit white hulls and station decks do not (M1 used
+    // 0.92 and the white ship and platforms bloomed into a white haze).
+    bloomPass = quality.bloom ? new UnrealBloomPass(new THREE.Vector2(256, 256), bloomStrength, 0.6, BLOOM_THRESHOLD) : null;
     if (bloomPass) {
       composer.addPass(new ShaderPass(SanitizeShader));
       composer.addPass(bloomPass);
     }
     finalPass = new ShaderPass(FinalShader);
+    finalPass.uniforms.uExposure.value = exposure;
     composer.addPass(finalPass);
     applySize();
   }
@@ -138,8 +146,25 @@ export function createPipeline({ renderer, scene, camera, overlay }) {
       width = Math.max(1, w); height = Math.max(1, h); basePixelRatio = pixelRatio || 1;
       applySize();
     },
-    setBloom(strength) { if (bloomPass) bloomPass.strength = strength; },
+    setBloom(strength) { bloomStrength = strength; if (bloomPass) bloomPass.strength = strength; },
+    /** Scene exposure for the tone mapper (showrooms run a little darker than flight). */
+    setExposure(value) { exposure = value; if (finalPass) finalPass.uniforms.uExposure.value = value; },
+    debug() {
+      const size = new THREE.Vector2();
+      renderer.getDrawingBufferSize(size);
+      const pr = effectivePixelRatio();
+      return {
+        hostPixelRatio: basePixelRatio, effective: pr, renderScale: quality.renderScale, dynamicScale, softwareScale,
+        width: Math.round(width * pr), height: Math.round(height * pr), bloom: Boolean(bloomPass), samples: quality.samples,
+        exposure, bloomStrength, threshold: bloomPass ? BLOOM_THRESHOLD : null,
+        overlayWidth: overlay ? Math.round(overlay.width * overlay.dpr) : 0, overlayHeight: overlay ? Math.round(overlay.height * overlay.dpr) : 0,
+        drawingBuffer: [size.x, size.y],
+      };
+    },
     render() {
+      // Count the whole frame (all passes + interface), not just its last draw.
+      renderer.info.autoReset = false;
+      renderer.info.reset();
       composer.render();
       if (overlay) overlay.render(renderer);
     },

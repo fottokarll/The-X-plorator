@@ -18,6 +18,7 @@ import { createOverlay } from '../ui/overlay.js';
 import { createUi } from '../ui/ui.js';
 import { viewInfo, UI_FX } from '../ui/kit.js';
 import { createHud } from '../ui/hud.js';
+import { createPerfReport } from '../ui/perf-report.js';
 import { registerScreens } from '../ui/screens.js';
 import { createHangarScreen } from '../ui/hangar.js';
 import { createMapScreen } from '../ui/galaxy-map.js';
@@ -96,6 +97,10 @@ export async function createGame(p0) {
   if (soft.software) pipeline.setSoftwareScale(0.72);
   const camRig = createCinematicCamera(camera);
   const audio = createAudio(p0);
+  const configureAudio = () => {
+    const s = profile.settings;
+    audio.configure({ sound: s.sound, musicEnabled: s.music, sfx: s.sfxVolume, musicLevel: s.musicVolume });
+  };
   const ui = createUi({
     overlay,
     onActivate: () => audio.play('ui', game.time),
@@ -141,17 +146,26 @@ export async function createGame(p0) {
   }
   rebuildObstacles();
 
-  function toast(textValue, color) {
-    toasts.push({ id: ++toastId, text: textValue, color, until: game.time + 3.6 });
+  function toast(textValue, color, seconds = 3.6) {
+    toasts.push({ id: ++toastId, text: textValue, color, until: game.time + seconds });
     if (toasts.length > 3) toasts.shift();
   }
 
-  function saveSoon() { saveQueued = true; saveTimer = 1.2; }
+  // Guests cannot keep a save (p0.save answers ok: false; the city's request
+  // returns HTTP 401). After the first refusal the game stops asking for the
+  // rest of the session, says so once, and plays on with progress in memory.
+  let saveRefused = false;
+  function saveSoon() { if (!saveRefused) { saveQueued = true; saveTimer = 1.2; } }
   async function saveNow() {
     saveQueued = false;
+    if (saveRefused || !p0.save) return;
     try {
-      const r = await p0.save?.(serializeProfile(profile));
-      if (r && r.ok === false && r.reason) p0.log?.('save:', r.reason);
+      const r = await p0.save(serializeProfile(profile));
+      if (r && r.ok === false) {
+        saveRefused = true;
+        p0.log?.('[xplorator] save not kept for this session:', r.reason ?? 'refused');
+        toast('Guest: progress lasts until you leave', '#9fb6d8', 6);
+      }
     } catch (e) { p0.log?.('save failed:', e?.message); }
   }
 
@@ -485,7 +499,34 @@ export async function createGame(p0) {
     showShips.set(key, entry);
     return entry;
   }
+  // Dark showroom stages: one opaque backdrop per vessel card window, so each
+  // ship reads against a calm navy spotlight rather than the bright planet.
+  const stages = new Map();
+  function showroomStage(key) {
+    let stage = stages.get(key);
+    if (stage) return stage;
+    stage = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShaderMaterial({
+      uniforms: { uAspect: { value: 1 }, uSelected: { value: 0 } },
+      vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: `varying vec2 vUv; uniform float uAspect; uniform float uSelected;
+        void main() {
+          vec2 p = (vUv - vec2(0.5, 0.46)) * vec2(uAspect, 1.0);
+          float r = length(p);
+          vec3 inner = mix(vec3(0.05, 0.09, 0.2), vec3(0.06, 0.13, 0.27), uSelected);
+          vec3 c = mix(inner, vec3(0.012, 0.022, 0.06), smoothstep(0.0, 0.75, r));
+          gl_FragColor = vec4(c, 1.0);
+        }`,
+    }));
+    stage.name = `Stage:${key}`;
+    stage.frustumCulled = false;
+    stage.renderOrder = -1;
+    stage.visible = false;
+    showroom.add(stage);
+    stages.set(key, stage);
+    return stage;
+  }
   function hideShowroom() {
+    for (const s of stages.values()) s.visible = false;
     for (const e of showShips.values()) e.ship.group.visible = false;
     hangarPad.visible = false;
     world.field.group.visible = true;
@@ -818,6 +859,7 @@ export async function createGame(p0) {
     localToHex,
     hexToLocal,
     showroomShip,
+    showroomStage,
     hideShowroom,
     hangarPad,
     setCameraWorld(p) { camWorld.copy(p); },
@@ -831,8 +873,8 @@ export async function createGame(p0) {
       input.setBindings(profile.settings.bindings);
       input.setOptions({ invert: profile.settings.invertY, sens: profile.settings.sensitivity });
       camRig.setBaseZoom(profile.settings.cameraZoom);
-      audio.configure({ sound: profile.settings.sound, musicEnabled: profile.settings.music });
-  audio.preload();
+      configureAudio();
+      audio.preload();
       applyStats();
       if (!changed || changed === 'quality') {
         const next = resolveQuality(profile.settings.quality);
@@ -848,7 +890,7 @@ export async function createGame(p0) {
       for (const n of layout.nodes) world.field.setNodeAmount(n.id, 1);
       rebuildObstacles();
       game.applySettings();
-      p0.save?.(null);
+      if (!saveRefused) p0.save?.(null);
     },
     saveNow,
     // Read-only snapshot for local test scripts (never used by the game itself).
@@ -885,6 +927,8 @@ export async function createGame(p0) {
   ui.register('hangar', createHangarScreen(game));
   ui.register('map', createMapScreen(game));
   ui.register('base', createBaseScreen(game));
+  const perf = createPerfReport(game);
+  ui.setDevOverlay(perf);
 
   // ------------------------------------------------------------- events
   let lastSize = '';
@@ -903,6 +947,7 @@ export async function createGame(p0) {
   const safe = fn => e => { try { fn(e ?? {}); } catch (err) { p0.log?.('input error:', err?.message); } };
   let pointerLogged = false;
   p0.on?.('pointerdown', safe(e => {
+    audio.gesture();
     if (!pointerLogged) { pointerLogged = true; p0.log?.('[xplorator] pointer fields:', Object.keys(e).join(','), 'touch=' + Boolean(e.touch)); }
     if (e.touch) input.device = 'touch';
     ui.pointerDown(e);
@@ -914,7 +959,7 @@ export async function createGame(p0) {
     if (ui.topId === 'map') ui.screen('map').wheel?.(dy);
     else if (mode === 'flight') camRig.zoomBy(Math.sign(dy) * 0.08);
   }));
-  p0.on?.('keydown', safe(e => input.latchKey(typeof e === 'string' ? e : e.code)));
+  p0.on?.('keydown', safe(e => { audio.gesture(); input.latchKey(typeof e === 'string' ? e : e.code); }));
   p0.on?.('resize', () => resize());
   p0.on?.('pad', active => { input.device = active ? 'pad' : 'kbm'; ui.invalidate(); });
   p0.on?.('pointerlock', () => ui.cancelTouches());
@@ -933,7 +978,10 @@ export async function createGame(p0) {
   // Make every material visible once (showroom pad included) for compilation.
   hangarPad.visible = true;
   // Build the four vessel previews now, so the selection screen opens without a stall.
-  for (const v of VESSELS) showroomShip(`select-${v.id}`, v.id, undefined).ship.group.visible = true;
+  for (const v of VESSELS) {
+    showroomShip(`select-${v.id}`, v.id, undefined).ship.group.visible = true;
+    showroomStage(`select-${v.id}`).visible = true;
+  }
   fx.prepare();
   UI_FX.shadows = qualityName !== 'low';
   const warm = await pipeline.warmUp(f => loading(0.75 + 0.15 * f, 'warming the engines'));
@@ -965,7 +1013,7 @@ export async function createGame(p0) {
   }
   p0.log?.(`[xplorator] renderer=${soft.name} quality=${qualityName} warmup=${Math.round(warmMs)}ms (${warm.kinds} material kinds, slowest ${Math.round(warm.slowest)}ms) world=${Math.round(bootWorldMs)}ms`);
   try { p0.hud?.(input.device === 'touch' ? HELP_TEXT_TOUCH : HELP_TEXT); } catch { /* optional */ }
-  audio.configure({ sound: profile.settings.sound, musicEnabled: profile.settings.music });
+  configureAudio();
   loading(1, 'Outer Verge');
   // Let the final progress message reach the host before start() resolves.
   await new Promise(resolve => setTimeout(resolve, 60));
@@ -978,6 +1026,7 @@ export async function createGame(p0) {
     // Diagnostic for very long frames (wall clock; dev console only).
     const nowMs = performance.now();
     if (lastLoopMs && nowMs - lastLoopMs > 1000) p0.log?.(`[xplorator] long frame ${Math.round(nowMs - lastLoopMs)} ms in ${mode}/${ui.topId} at ${game.time.toFixed(1)} s`);
+    if (lastLoopMs && perf.enabled && perf.sample(nowMs - lastLoopMs, Math.min(Math.max(Number(dtRaw) || 0, 0), 0.1))) ui.invalidate();
     lastLoopMs = nowMs;
     const dt = Math.min(Math.max(Number(dtRaw) || 0, 0), 0.1);
     game.time += dt;
@@ -1015,6 +1064,7 @@ export async function createGame(p0) {
     const tD = performance.now();
 
     if (saveQueued) { saveTimer -= dt; if (saveTimer <= 0) saveNow(); }
+    audio.update();
     pipeline.render();
     const tE = performance.now();
     if (tE - tA > 500) p0.log?.(`[xplorator] slow frame body: sim ${Math.round(tB - tA)} effects ${Math.round(tC - tB)} ui ${Math.round(tD - tC)} render ${Math.round(tE - tD)} ms (${mode}/${ui.topId})`);

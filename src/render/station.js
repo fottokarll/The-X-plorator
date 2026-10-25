@@ -113,11 +113,30 @@ export const MODULE_INFO = Object.freeze({
   scanner: { label: 'Scanner Array' },
 });
 
+// The station's decks are large flat white surfaces facing the key light: with
+// the ship's hull material they read as a clipped white glare. They keep the
+// same look with a softer albedo and a fainter rim light.
+let stationHull = null;
+function stationHullMaterial() {
+  if (stationHull) return stationHull;
+  stationHull = new THREE.MeshStandardMaterial({ vertexColors: true, color: 0xc9d2df, roughness: 0.55, metalness: 0.18, flatShading: true });
+  stationHull.onBeforeCompile = shader => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <emissivemap_fragment>',
+      `#include <emissivemap_fragment>
+      float xpRim = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 3.0);
+      totalEmissiveRadiance += vec3(0.42, 0.78, 1.0) * xpRim * 0.22;`,
+    );
+  };
+  stationHull.customProgramCacheKey = () => 'xp-station-rim';
+  return stationHull;
+}
+
 export function createStation({ tiles, powered = false, position = [0, 0, 0] }) {
   const group = new THREE.Group();
   group.name = 'HavenOutpost';
   group.position.set(...position);
-  const mats = shipMaterials();
+  const mats = { ...shipMaterials(), hull: stationHullMaterial() };
   const meshes = { hull: null, glass: null, glow: null };
   let dockLocal = new THREE.Vector3(0, 2, 0);
 
