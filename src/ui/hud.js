@@ -1,4 +1,6 @@
-import { COLORS, text, icon, panel, roundButton, divider, measure, vignette } from './kit.js';
+import { COLORS, text, icon, panel, roundButton, divider, measure, vignette, paragraph, setFont, button } from './kit.js';
+import { portrait } from './portraits.js';
+import { taskText, tutorialText } from '../tutorial/tutorial.js';
 import { SPRITE } from './overlay.js';
 import { prettyKey } from '../input/keyboard.js';
 
@@ -43,6 +45,42 @@ export function createHud(game) {
     };
   }
 
+  let stackY = 0;
+  // Returns the card's bottom edge.
+  function drawRadio(ctx, view, reg, state, m, at) {
+    const { u } = view;
+    const t = m.tutorial;
+    const phone = view.phone;
+    const r = (phone ? 19 : 24) * u;
+    const textSize = (phone ? 12.5 : 13.5) * u;
+    const textX = at.x + r * 2 + 22 * u, textW = at.w - (textX - at.x) - 12 * u;
+    setFont(ctx, textSize, 400);
+    let lines = 0, line = '';
+    for (const word of t.text.split(/\s+/)) {
+      const test = line ? `${line} ${word}` : word;
+      if (ctx.measureText(test).width > textW && line) { lines++; line = word; } else line = test;
+    }
+    lines = Math.min(view.landscapePhone ? 2 : 3, lines + 1);
+    const h = 30 * u + lines * textSize * 1.35 + 26 * u;
+    panel(ctx, at.x, at.y, at.w, h, { r: 12 * u, fill: 'rgba(6,16,42,0.82)', stroke: 'rgba(112,226,244,0.42)', highlight: false });
+    const who = t.speaker === 'pilot' ? m.pilot : 'control';
+    portrait(ctx, who, at.x + 12 * u + r, at.y + 12 * u + r, r, t.speaker === 'pilot' ? COLORS.gold : COLORS.cyan);
+    text(ctx, tutorialText(t.speaker === 'pilot' ? 'tut.name.pilot' : 'tut.name.control'), textX, at.y + 17 * u, { size: 9.5 * u, weight: 700, color: t.speaker === 'pilot' ? COLORS.gold : COLORS.cyan, tracking: 1.6 * u, maxWidth: textW - 90 * u });
+    paragraph(ctx, t.text, textX, at.y + 28 * u, textW, { size: textSize, lineHeight: 1.35, color: COLORS.text, maxLines: lines });
+    // The task, adapted to the device and the player's own keys.
+    const ty = at.y + h - 14 * u;
+    ctx.save(); ctx.translate(textX + 4 * u, ty); ctx.rotate(Math.PI / 4);
+    ctx.strokeStyle = COLORS.gold; ctx.lineWidth = 1.3; ctx.strokeRect(-3.5 * u, -3.5 * u, 7 * u, 7 * u); ctx.restore();
+    text(ctx, taskText(t.task, m.device, game.input.bindings), textX + 14 * u, ty, { size: 12 * u, weight: 600, color: '#F9E3C4', maxWidth: textW - 14 * u });
+    // Skip: small, but a 44 px target on touch.
+    const sw = measure(ctx, tutorialText('tut.skip'), 10 * u, 500) + 16 * u;
+    const sx = at.x + at.w - sw - 6 * u, sy = at.y + 4 * u;
+    text(ctx, tutorialText('tut.skip'), sx + sw / 2, sy + 12 * u, { size: 10 * u, color: COLORS.faint, align: 'center' });
+    reg.add('tutSkip', sx - (m.touch ? 8 : 0), sy - (m.touch ? 8 : 0), sw + (m.touch ? 16 : 0), Math.max(m.touch ? 44 : 0, 24 * u), { focusable: false });
+    void button; void state;
+    return at.y + h;
+  }
+
   const screen = {
     id: 'hud',
     menuInput: false,
@@ -54,7 +92,7 @@ export function createHud(game) {
       return [m.cargo.cryon, m.cargo.ferrite, m.cargo.capacity, m.bank.cryon, m.bank.ferrite, m.objective.text, m.objective.detail,
         Math.round(m.objective.distance / 10), m.prompt?.text, Math.round(m.speed), m.mode, m.device, m.touch, m.toasts.map(t => t.id).join(','),
         m.scanCard?.id, m.interact, m.canScan, Math.round((m.scan?.progress ?? 0) * 10), Math.round((m.mining?.progress ?? 0) * 10), m.warning,
-        game.input.bindings.boost[0], m.docked].join('~');
+        game.input.bindings.boost[0], m.docked, m.tutorial?.step, m.tutorial?.line, m.pilot].join('~');
     },
     draw(ctx, view, reg, state) {
       const m = game.hudModel();
@@ -131,10 +169,16 @@ export function createHud(game) {
         ctx.fillRect(w / 2 - ow * 0.25, objY + 31 * u, ow * 0.5 * prog, 2);
       }
 
+      // First-flight radio card (Gate D): left on desktop, in the stack on phones.
+      if (m.tutorial) {
+        if (touch) stackY = drawRadio(ctx, view, reg, state, m, { x: view.landscapePhone ? w / 2 - Math.min(460 * u, w - pad * 2 - view.safeX * 2) / 2 : pad, y: objY + 46 * u, w: view.landscapePhone ? Math.min(460 * u, w - pad * 2 - view.safeX * 2) : w - pad * 2 }) + 30 * u;
+        else drawRadio(ctx, view, reg, state, m, { x: pad + view.safeX, y: Math.max(view.p0Corner + 100 * u, h * 0.3), w: Math.min(390 * u, w * 0.3) });
+      }
+
       // Messages stack downward from one cursor so they never overlap: on
       // touch layouts below the objective (which sits under the title), on
       // desktop below the title (the objective is at the bottom there).
-      let stackY = touch ? objY + 50 * u : titleY + 40 * u;
+      if (!touch || !m.tutorial) stackY = touch ? objY + 50 * u : titleY + 40 * u;
       const maxTextW = w - pad * 2 - 30 * u;
       if (m.warning) {
         const ww = Math.min(maxTextW + 30 * u, measure(ctx, m.warning, 13 * u, 500, 2 * u) + 40 * u);
@@ -157,7 +201,8 @@ export function createHud(game) {
 
       // Context prompt.
       if (m.prompt) {
-        const py = touch ? h * (view.portrait ? 0.56 : 0.62) : h - pad - 160 * u;
+        // On touch layouts the prompt stays below everything stacked above it.
+        const py = touch ? Math.min(h - 150 * u, Math.max(h * (view.portrait ? 0.56 : 0.62), stackY + 14 * u)) : h - pad - 160 * u;
         const label = m.prompt.text.toUpperCase();
         const key = touch ? '' : hint(m.prompt.action, m.device, game.input.bindings);
         const pw = measure(ctx, label, 13 * u, 600, 2.4 * u) + (key ? 46 * u : 30 * u);
@@ -179,6 +224,7 @@ export function createHud(game) {
         // Phone landscape: left column, between the counters and the stick.
         let cx = w - pad - cw, cy = h * 0.36;
         if (touch && view.portrait) { cx = w / 2 - cw / 2; cy = stackY - 4 * u; }
+        else if (touch && m.tutorial) { cx = w - pad - view.safeX - cw; cy = Math.max(view.p0Top, pad) + 54 * u; }
         else if (touch) { cx = pad + view.safeX; cy = Math.max(view.p0Corner, view.p0Top) + 88 * u; }
         panel(ctx, cx, cy, cw, ch, { r: 12 * u, glow: 10 * u });
         icon(ctx, c.type === 'crystal' ? 'crystal' : 'ore', cx + 22 * u, cy + 24 * u, 20 * u, c.type === 'crystal' ? COLORS.cyan : COLORS.gold);
@@ -269,7 +315,10 @@ export function createHud(game) {
       // Mouse: right (or middle) drag looks around; left drag also looks when not on a button.
       return 'look';
     },
-    onAction(id) { game.hudAction(id); },
+    onAction(id) {
+      if (id === 'tutSkip') { game.skipTutorial(); return; }
+      game.hudAction(id);
+    },
     onEdge(e) { game.hudAction(e); },
     back() { game.hudAction('pause'); },
   };

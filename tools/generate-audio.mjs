@@ -196,6 +196,18 @@ wav('dock', cue(2.6, (t) => {
   }, 2600));
 }
 
+// Radio: a very gentle two-tone chirp before a Haven Control line, with a
+// breath of band-limited air like an open channel.
+{
+  let air = 0;
+  wav('radio', cue(0.42, (t) => {
+    air += 0.25 * (rnd() - air);
+    const a = softEnv(t, 0.008, 0.06) * tone(note(79), t, 0.05);
+    const b = t > 0.09 ? softEnv(t - 0.09, 0.008, 0.09) * tone(note(84), t - 0.09, 0.05) : 0;
+    return 0.35 * (a + b) + 0.12 * air * softEnv(t, 0.02, 0.16);
+  }, 3400));
+}
+
 // UI: a short, soft wooden tick.
 wav('ui', cue(0.12, (t) => 0.35 * softEnv(t, 0.004, 0.025) * tone(660, t, 0.3), 5000));
 

@@ -312,7 +312,9 @@ function pauseMenu(game) {
       const items = [
         ['resume', 'Resume', 'play'], ['hangar', 'Ship Hangar', 'hangar'], ['base', 'Orbital Base', 'base'],
         ['map', 'Galaxy Map', 'map'], ['settings', 'Settings', 'settings'], ['help', 'Controls', 'help'],
-        ['restart', 'Return to Station', 'reset'], ['menu', 'Main Menu', 'back'],
+        ['restart', 'Return to Station', 'reset'],
+        game.tutorialActive ? ['tutorial', 'Skip tutorial', 'help'] : ['tutorial', 'Replay tutorial', 'help'],
+        ['menu', 'Main Menu', 'back'],
       ];
       const bh = (phone ? 40 : 46) * u, gap = (phone ? 7 : 10) * u;
       const twoCols = phone && !portrait;
@@ -337,6 +339,7 @@ function pauseMenu(game) {
       else if (id === 'settings') game.ui.push('settings');
       else if (id === 'help') game.ui.push('help');
       else if (id === 'restart') { game.ui.pop(); game.restartSector(); }
+      else if (id === 'tutorial') { if (game.tutorialActive) game.skipTutorial(); else game.replayTutorial(); game.resume(); }
       else if (id === 'menu') game.toMenu();
     },
     back() { game.resume(); },
@@ -365,6 +368,7 @@ function settingsScreen(game) {
       { id: 'sensitivity', label: 'Steering sensitivity', value: s.sensitivity, values: [0.6, 0.8, 1, 1.2, 1.4], show: v => `${Math.round(v * 100)}%` },
       { id: 'cameraZoom', label: 'Camera distance', value: s.cameraZoom, values: [1.2, 1, 0.85], show: v => (v > 1.1 ? 'Wide' : v < 0.95 ? 'Close' : 'Standard') },
       { id: 'reducedMotion', label: 'Reduced motion', value: s.reducedMotion, values: [false, true], show: v => (v ? 'On' : 'Off') },
+      { id: 'pilot', label: 'Pilot portrait', value: s.pilot, values: ['visor', 'woman', 'man'], show: v => ({ visor: 'Visor (neutral)', woman: 'Woman', man: 'Man' })[v] },
       { id: 'musicVolume', label: 'Music volume', slider: true, value: s.musicVolume, muteKey: 'music', muted: !s.music },
       { id: 'sfxVolume', label: 'Effects volume', slider: true, value: s.sfxVolume, muteKey: 'sound', muted: !s.sound },
     ];

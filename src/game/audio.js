@@ -20,14 +20,15 @@ const FILES = {
   dock: 'assets/audio/dock.wav',
   launch: 'assets/audio/launch.wav',
   ui: 'assets/audio/ui.wav',
+  radio: 'assets/audio/radio.wav',
 };
 export const MUSIC_FILE = 'assets/audio/verge-ambient.wav';
 export const MUSIC_SECONDS = 24;
 // Every cue file has the same active loudness; these trims set the mix under
 // the player's effects volume. The pad file is levelled 3 dB above the cues.
-export const CUE_TRIM = Object.freeze({ scan: 0.75, scanDone: 0.7, collect: 0.8, dock: 0.85, launch: 0.7, ui: 0.4 });
+export const CUE_TRIM = Object.freeze({ scan: 0.75, scanDone: 0.7, collect: 0.8, dock: 0.85, launch: 0.7, ui: 0.4, radio: 0.35 });
 export const DEFAULT_VOLUME = Object.freeze({ music: 0.8, sfx: 0.55 });
-const MIN_GAP = { scan: 0.4, scanDone: 0.3 };
+const MIN_GAP = { scan: 0.4, scanDone: 0.3, radio: 1.5 };
 const VOLUME_SETTLE = 0.35; // seconds after the last slider step
 
 const clamp01 = v => (Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0);

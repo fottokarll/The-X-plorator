@@ -21,6 +21,7 @@ import { createHud } from '../ui/hud.js';
 import { createPerfReport } from '../ui/perf-report.js';
 import { createStoryScreen, createTranscriptScreen } from '../ui/story-screen.js';
 import { createBootState, runTask } from '../boot/boot-state.js';
+import { createTutorial } from '../tutorial/tutorial.js';
 import { registerScreens } from '../ui/screens.js';
 import { createHangarScreen } from '../ui/hangar.js';
 import { createMapScreen } from '../ui/galaxy-map.js';
@@ -299,6 +300,37 @@ export async function createGame(p0) {
     world.shipRoot.updateMatrix();
   }
 
+  // ------------------------------------------------------------- tutorial
+  // First-flight guidance (Gate D). It only listens: each step finishes on a
+  // real game event reported below, it grants nothing and never changes the
+  // mission. Its state is saved with the profile so it resumes.
+  let tutorial = null;
+  const tutorialRun = { steer: 0, boost: 0, brake: 0 };
+  function makeTutorial() {
+    tutorial = createTutorial({
+      state: profile.tutorial,
+      firstMission: () => !['complete', 'free'].includes(profile.mission.step),
+      now: () => clock.time,
+      onLine: ([speaker]) => { if (speaker === 'control' && mode !== 'story') audio.play('radio', clock.time); },
+    });
+  }
+  function tut(event) {
+    if (!tutorial?.active || !tutorial.handle(event)) return;
+    profile.tutorial = tutorial.serialize();
+    p0.log?.(`[xplorator] tutorial: ${event} -> ${tutorial.step ?? 'done'}`);
+    saveSoon();
+  }
+  // Steering, boost and brake count only while really held (seconds of input).
+  function tutorialInput(dt, inp) {
+    if (!tutorial?.active) return;
+    const step = tutorial.step;
+    if (step === 'steer' && Math.abs(inp.yaw) + Math.abs(inp.pitch) > 0.35 && (tutorialRun.steer += dt) >= 1.0) tut('steered');
+    if (step === 'speed') {
+      if (inp.boost > 0.5 && (tutorialRun.boost += dt) >= 0.4) tut('boosted');
+      if (inp.brake > 0.3 && (tutorialRun.brake += dt) >= 0.3) tut('braked');
+    }
+  }
+
   // ------------------------------------------------------------- flight
   const SUB = 1 / 60;
   function updateFlight(dt, inp) {
@@ -330,6 +362,7 @@ export async function createGame(p0) {
     collide();
     applyShipTransform();
     interactions(dt);
+    tutorialInput(dt, inp);
   }
 
   const fwdV = new THREE.Vector3(), rightV = new THREE.Vector3(), upV = new THREE.Vector3(), relV = new THREE.Vector3();
@@ -410,9 +443,10 @@ export async function createGame(p0) {
     const obj = objective(profile, layout.nodes, [p.x, p.y, p.z]);
     if (obj.kind === 'node' && obj.target) {
       const n = layout.nodes.find(x => x.id === obj.target);
-      if (n && onApproach(profile, n, p.distanceTo(tmp.set(...n.position)) - n.radius, stats.scanRange)) saveSoon();
+      if (n && onApproach(profile, n, p.distanceTo(tmp.set(...n.position)) - n.radius, stats.scanRange)) { saveSoon(); tut('approached'); }
     }
     onNearDock(profile, dockDistance());
+    if (cargoUsed(profile) > 0 && dockDistance() < 70) tut('nearDock');
 
     if (scanning) {
       scanning.t += dt;
@@ -423,6 +457,7 @@ export async function createGame(p0) {
         scanning = null;
         camRig.setActionZoom(1);
         onScanned(profile, node);
+        tut('scanned');
         audio.play('scanDone', game.time);
         const purity = 72 + Math.round(((node.position[0] * 13 + node.position[2] * 7) % 25 + 25) % 25);
         scanCard = {
@@ -442,6 +477,8 @@ export async function createGame(p0) {
         mining = null;
         const r = onCollected(profile, node, { capacity: stats.capacity, yieldFactor: stats.yieldFactor, playSeconds: profile.stats.playSeconds });
         if (r.amount > 0) {
+          tut('collected');
+          if (profile.mission.step === 'return') tut('holdReady');
           world.field.setNodeAmount(node.id, 0);
           toast(`+${r.amount} ${RESOURCES[r.key].label}`, RESOURCES[r.key].color);
           audio.play('collect', game.time);
@@ -534,6 +571,7 @@ export async function createGame(p0) {
       flight.speed = 0;
       camRig.setActionZoom(0.9);
       const r = onDocked(profile);
+      tut('docked');
       audio.play('dock', game.time);
       const parts = [];
       if (r.delivered.cryon) parts.push(`${r.delivered.cryon} Cryon`);
@@ -551,6 +589,7 @@ export async function createGame(p0) {
     if (ui.is('docked') || ui.is('complete')) ui.pop();
     if (profile.mission.step === 'complete') profile.mission.step = 'free';
     const from = v3(flight.position);
+    tut('launched');
     launching = { t: 0, from, to: from.clone().add(new THREE.Vector3(0, 7, 28)) };
     audio.play('launch', game.time);
     mode = 'launching';
@@ -776,6 +815,8 @@ export async function createGame(p0) {
       touch: touchMode,
       markers,
       docked: mode === 'docked',
+      tutorial: game.tutorialView(),
+      pilot: profile.settings.pilot,
     };
     return hudModel;
   }
@@ -869,6 +910,8 @@ export async function createGame(p0) {
       const flags = { ...profile.flags };
       profile = newProfile(vessel);
       profile.flags = flags;
+      Object.assign(tutorialRun, { steer: 0, boost: 0, brake: 0 });
+      makeTutorial();
       hasSave = true;
       applyStats();
       world.setShip(profile.vessel, profile.equipped);
@@ -892,6 +935,21 @@ export async function createGame(p0) {
       if (saveQueued) saveNow();
       ui.show('menu');
       setHelpHud();
+    },
+    /** The tutorial's card for the HUD (null when it is not running). */
+    tutorialView() { return tutorial?.active && ['flight', 'docked', 'launching', 'docking'].includes(mode) ? tutorial.current() : null; },
+    get tutorialActive() { return Boolean(tutorial?.active); },
+    skipTutorial() {
+      if (!tutorial?.active) return;
+      tutorial.skip();
+      profile.tutorial = tutorial.serialize();
+      saveSoon();
+    },
+    replayTutorial() {
+      Object.assign(tutorialRun, { steer: 0, boost: 0, brake: 0 });
+      tutorial.restart();
+      profile.tutorial = tutorial.serialize();
+      saveSoon();
     },
     /** BEGIN THE EXODUS (or SKIP when ready): to the main menu, never into flight. */
     finishPrologue() {
@@ -931,6 +989,7 @@ export async function createGame(p0) {
       paused = true; scanning = null; mining = null;
       mode = 'base';
       ui.show('base');
+      tut('baseOpened');
     },
     openMap(from) {
       game.returnMode = from ?? (mode === 'docked' ? 'docked' : mode === 'attract' ? 'attract' : 'flight');
@@ -939,6 +998,7 @@ export async function createGame(p0) {
       ui.show('map');
     },
     closeSubscreen() {
+      if (mode === 'base') tut('baseClosed');
       hideShowroom();
       world.universe.visible = true;
       world.shipRoot.visible = true;
@@ -1017,6 +1077,7 @@ export async function createGame(p0) {
       const flags = { ...profile.flags };
       profile = newProfile();
       profile.flags = flags;
+      makeTutorial();
       hasSave = false;
       applyStats();
       world.setShip(profile.vessel, profile.equipped);
@@ -1042,6 +1103,7 @@ export async function createGame(p0) {
         equipped: { ...profile.equipped }, inventory: [...profile.inventory], powered: profile.powered,
         story: ui.has('story') ? storyScreen.debug() : null, boot: { ready: boot.ready, fraction: +boot.fraction.toFixed(3), tasks: boot.snapshot() },
         prologueSeen: profile.flags.prologueSeen,
+        tutorial: tutorial ? { step: tutorial.step, done: tutorial.done } : null,
       };
     },
   };
@@ -1056,6 +1118,8 @@ export async function createGame(p0) {
     ui.show('hud');
     launch();
   }
+
+  makeTutorial();
 
   // ------------------------------------------------------------- screens
   ui.register('hud', createHud(game));

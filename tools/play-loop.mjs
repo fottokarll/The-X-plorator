@@ -24,7 +24,10 @@ const browser = await chromium.launch({ headless, args: headless ? ['--use-angle
 const page = await (await browser.newContext({ viewport: { width: W, height: H } })).newPage();
 const errors = [];
 page.on('pageerror', e => errors.push(e.message));
-page.on('console', m => { if (m.type() === 'error' && !m.text().includes('404')) errors.push(m.text()); });
+page.on('console', m => {
+  if (m.type() === 'error' && !m.text().includes('404')) errors.push(m.text());
+  if (m.text().includes('[xplorator] tutorial:')) note(m.text().replace(/^.*\[xplorator\] /, ''));
+});
 const log = [];
 const note = s => { const line = `[${((Date.now() - t0) / 1000).toFixed(1)}s] ${s}`; log.push(line); console.log(line); };
 const t0 = Date.now();
@@ -111,6 +114,25 @@ while (Date.now() < deadline) {
   await page.waitForTimeout(90);
 }
 await releaseAll();
+// Optional (--tutorial): finish the first-flight tutorial with real keys:
+// Orbital Base from the completion panel, back to the pad, read the last
+// line, launch.
+if (ok && args.includes('--tutorial')) {
+  await tap('ArrowRight'); await page.waitForTimeout(150); await tap('ArrowRight'); await page.waitForTimeout(150);
+  await tap('Space');
+  await page.waitForFunction(() => window.__xpGame.debugState().top === 'base', null, { timeout: 8000 });
+  note(`orbital base open, tutorial ${(await state()).tutorial.step}`);
+  await page.waitForTimeout(1500);
+  await tap('Backspace');
+  await page.waitForTimeout(1500);
+  note(`back at the pad, tutorial ${(await state()).tutorial.step}`);
+  await shot('09-tutorial-last-line');
+  await tap('KeyE');
+  await page.waitForTimeout(3000);
+  const t = (await state()).tutorial;
+  note(`launched, tutorial ${t.done ? 'done' : t.step}`);
+  if (!t.done) { ok = false; note('FAIL: tutorial not finished'); }
+}
 // Optional: spend the delivered Cryon in the hangar (craft + equip Ion Drive II).
 if (ok && args.includes('--hangar')) {
   await tap('Space'); // 'Open Hangar' is the default focus on the completion panel
