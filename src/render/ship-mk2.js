@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { paint, loft, plate, cylinderZ, box, mirrorX } from './ship-model.js';
+import { paint, loft, plate, cylinderZ, box, mirrorX, rimMaterial } from './ship-model.js';
 
 /**
  * XPLORATOR_EXPLORER_MK2: the white and orange human-built explorer of the
@@ -45,18 +45,10 @@ let materials = null;
 /** Clean stylised materials: matte-satin white, deep tinted glass, unlit lights. */
 export function mk2Materials() {
   if (materials) return materials;
-  const hull = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.48, metalness: 0.12, flatShading: true });
   // A faint cool rim keeps the silhouette readable on dark blue space without
-  // glowing (M1's rim was three times as strong and blew the hull out).
-  hull.onBeforeCompile = shader => {
-    shader.fragmentShader = shader.fragmentShader.replace(
-      '#include <emissivemap_fragment>',
-      `#include <emissivemap_fragment>
-      float xpRim = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 3.0);
-      totalEmissiveRadiance += vec3(0.42, 0.7, 1.0) * xpRim * 0.16;`,
-    );
-  };
-  hull.customProgramCacheKey = () => 'xp-mk2-hull';
+  // glowing (M1's rim was three times as strong and blew the hull out). Same
+  // shader program as the M1 hull and the station (the strength is a uniform).
+  const hull = rimMaterial({ rim: 0.16, roughness: 0.48, metalness: 0.12 });
   materials = {
     hull,
     glass: new THREE.MeshStandardMaterial({ color: 0x0a0f19, roughness: 0.12, metalness: 0.7, emissive: 0x08203f, emissiveIntensity: 0.35, flatShading: true }),

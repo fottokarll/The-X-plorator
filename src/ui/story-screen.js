@@ -446,7 +446,13 @@ export function createStoryScreen({ p0, boot, isReducedMotion = () => false, onB
       let srcH = span[1] - span[0];
       let srcW = srcH * inner.w / inner.h;
       if (srcW > a.width) { srcW = a.width; srcH = srcW * inner.h / inner.w; }
-      const srcX = Math.max(0, Math.min(a.width - srcW, beat.focus * a.width - srcW / 2));
+      let srcX = beat.focus * a.width - srcW / 2;
+      // Slide the window just enough to keep the drawn balloon whole, when it fits.
+      if (beat.slide && a.balloon && t(beat.bubble)) {
+        const [bx, , bw] = a.balloon.shape, m = 8;
+        if (bw + m * 2 <= srcW) srcX = Math.max(bx + bw + m - srcW, Math.min(bx - m, srcX));
+      }
+      srcX = Math.max(0, Math.min(a.width - srcW, srcX));
       const srcY = span[0] + ((span[1] - span[0]) - srcH) / 2;
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(entry.bitmap, srcX, srcY, srcW, srcH, inner.x, inner.y, inner.w, inner.h);
@@ -483,8 +489,11 @@ export function createStoryScreen({ p0, boot, isReducedMotion = () => false, onB
         balloonText(ctx, bubble, { x: tx0, y: ty0, w: b.text[2] * win.sc, h: b.text[3] * win.sc }, { x: sx0, y: sy0, w: sx1 - sx0, h: sy1 - sy0 },
           { minSize: 13 * u, maxSize: 20 * u, clip: inner });
       } else if (partly) {
-        // Cut by the frame edge: a whole balloon over the visible part.
-        balloonText(ctx, bubble, { x: sx0, y: sy0, w: 1, h: 1 }, { x: sx0, y: sy0, w: sx1 - sx0, h: sy1 - sy0 }, { minSize: 13 * u, maxSize: 13 * u, clip: inner });
+        // Cut by the frame edge: a whole balloon of the game's own, kept in the
+        // frame and covering the visible part of the drawn one.
+        const vx0 = Math.max(sx0, inner.x), vx1 = Math.min(sx1, inner.x + inner.w);
+        const cut = { x: vx0, y: sy0, w: vx1 - vx0, h: sy1 - sy0 };
+        balloonText(ctx, bubble, { x: cut.x + cut.w / 2, y: cut.y + cut.h / 2, w: 0, h: 0 }, cut, { minSize: 13 * u, maxSize: 13 * u - 0.01, clip: inner });
       } else {
         ownBalloon(ctx, bubble, inner, sx0 < inner.x ? 'left' : 'right', 13 * u, plateH + 3);
       }
@@ -519,7 +528,7 @@ export function createStoryScreen({ p0, boot, isReducedMotion = () => false, onB
     const ch = lines.length * size * 1.4 + 26 * u;
     // Frame and card as one block, centred in the room above the controls.
     const roomTop = rowY + 44 + 12 * u, roomBottom = h - footer - 40 * u;
-    const fh = Math.max(120, Math.min(fw / 1.18, roomBottom - roomTop - ch - 12 * u));
+    const fh = Math.max(120, Math.min(fw / 1.3, roomBottom - roomTop - ch - 12 * u));
     const frameTop = roomTop + Math.max(0, (roomBottom - roomTop - (fh + 12 * u + ch)) / 2);
     drawFrame(ctx, reg, state, view, beat, { x: pad, y: frameTop, w: fw, h: fh });
     // Narration card.
@@ -585,8 +594,13 @@ export function createStoryScreen({ p0, boot, isReducedMotion = () => false, onB
       const key = view ? `${view.w}x${view.h}` : '';
       if (key !== lastViewKey && view) { lastViewKey = key; layout = layoutFor(view); plan(); }
       const failed = boot.failed;
-      return [mode, layout, story.index, story.furthest, boot.ready, failed?.id ?? '', Math.round(boot.fraction * 40), boot.current?.id ?? '',
-        boot.idleSeconds() > 25, note, art.stats().map(e => e.state[0]).join(''), deviceHint()].join('|');
+      // Boot progress is only on screen on the last panel or the welcome
+      // card: elsewhere it must not redraw the page (a full-canvas upload,
+      // costly on software renderers while the shaders are compiling).
+      const progressShown = !boot.ready && (story.atEnd || mode === 'welcome');
+      const progress = progressShown ? `${Math.round(boot.fraction * 20)}|${boot.current?.id ?? ''}|${boot.idleSeconds() > 25}` : '';
+      return [mode, layout, story.index, story.furthest, boot.ready, failed?.id ?? '', progress,
+        note, art.stats().map(e => e.state[0]).join(''), deviceHint()].join('|');
     },
     draw(ctx, view, reg, state) {
       layout = layoutFor(view);

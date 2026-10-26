@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { shipMaterials } from './ship-model.js';
+import { shipMaterials, rimMaterial } from './ship-model.js';
 import { hexToLocal, HEX_SIZE } from '../game/base.js';
 
 /**
@@ -119,16 +119,7 @@ export const MODULE_INFO = Object.freeze({
 let stationHull = null;
 function stationHullMaterial() {
   if (stationHull) return stationHull;
-  stationHull = new THREE.MeshStandardMaterial({ vertexColors: true, color: 0xc9d2df, roughness: 0.55, metalness: 0.18, flatShading: true });
-  stationHull.onBeforeCompile = shader => {
-    shader.fragmentShader = shader.fragmentShader.replace(
-      '#include <emissivemap_fragment>',
-      `#include <emissivemap_fragment>
-      float xpRim = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 3.0);
-      totalEmissiveRadiance += vec3(0.42, 0.78, 1.0) * xpRim * 0.22;`,
-    );
-  };
-  stationHull.customProgramCacheKey = () => 'xp-station-rim';
+  stationHull = rimMaterial({ rim: 0.22, color: 0xc9d2df, roughness: 0.55, metalness: 0.18 });
   return stationHull;
 }
 

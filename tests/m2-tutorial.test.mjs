@@ -35,6 +35,12 @@ test('tutorial: a player ahead of it is caught up, never stuck; the first launch
   assert.equal(tut.step, 'base');
 });
 
+test('tutorial: opening the base or launching early never skips the lessons', () => {
+  const tut = createTutorial();
+  run(tut, ['steered', 'baseOpened', 'baseClosed', 'launched']);
+  assert.equal(tut.step, 'speed');
+});
+
 test('tutorial: first-mission steps are passed over once that mission is done (replay)', () => {
   let first = true;
   const tut = createTutorial({ firstMission: () => first });

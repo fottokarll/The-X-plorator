@@ -24,7 +24,8 @@ export const STEPS = Object.freeze([
   { id: 'fill', lines: [['control', 'tut.line.fill']], task: 'fill', catchUp: true, firstMissionOnly: true, done: e => e === 'holdReady' },
   { id: 'return', lines: [['control', 'tut.line.home']], task: 'return', catchUp: true, done: e => e === 'nearDock' },
   { id: 'dock', lines: [['control', 'tut.line.dock']], task: 'dock', catchUp: true, done: e => e === 'docked' },
-  { id: 'base', lines: [['control', 'tut.line.foothold']], task: 'base', catchUp: true, done: e => e === 'baseOpened' },
+  // The base can be opened at any time (B), so opening it early skips nothing.
+  { id: 'base', lines: [['control', 'tut.line.foothold']], task: 'base', done: e => e === 'baseOpened' },
   // Shown back at the pad after the base; the next launch ends the tutorial.
   { id: 'free', lines: [['control', 'tut.line.free']], task: 'free', done: e => e === 'launched' },
 ]);

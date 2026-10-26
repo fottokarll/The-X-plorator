@@ -277,6 +277,12 @@ window.addEventListener('resize', () => {
 });
 
 function pollGamepad() {
+  // A simulated standard controller for local test scripts (window.__fakePad).
+  if (window.__fakePad) {
+    p0.input.gamepad = window.__fakePad;
+    if (!p0.input.pad) { p0.input.pad = true; emit('pad', true); }
+    return;
+  }
   const pads = navigator.getGamepads?.() ?? [];
   const pad = [...pads].find(p => p && p.connected && p.mapping === 'standard');
   if (!pad) {

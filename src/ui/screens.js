@@ -134,7 +134,9 @@ function vesselSelect(game) {
       const gridW = cw * cols + gap * (cols - 1);
       const x0 = (w - gridW) / 2;
       const compact = cw < 220 * u || ch < 230 * u;
-      const headH = (compact ? 48 : 58) * u, footH = (compact ? 60 : 62) * u;
+      // Landscape phones: the shortest bands, so the ships keep a real window.
+      const tight = view.landscapePhone;
+      const headH = (tight ? 40 : compact ? 48 : 58) * u, footH = (tight ? 26 : compact ? 60 : 62) * u;
       const windows = VESSELS.map((v, i) => {
         const cx = x0 + (i % cols) * (cw + gap), cy = cardsTop + Math.floor(i / cols) * (ch + gap);
         return { v, cx, cy, wx: cx + 6 * u, wy: cy + headH, ww: cw - 12 * u, wh: ch - headH - footH };
@@ -199,7 +201,9 @@ function vesselSelect(game) {
         // Footer: crew and cargo, then the benefit.
         const cargo = BASE_CARGO + v.cargoBonus;
         const fy = cy + ch - footH;
-        if (small) {
+        if (tight) {
+          text(ctx, `${v.crew} CREW  ·  ${cargo} CARGO`, cx + cw / 2, fy + 13 * u, { size: 10.5 * u, weight: 700, align: 'center', tracking: 0.8 * u, maxWidth: cw - 12 * u });
+        } else if (small) {
           text(ctx, `${v.crew} CREW  ·  ${cargo} CARGO`, cx + cw / 2, fy + 13 * u, { size: 10.5 * u, weight: 700, align: 'center', tracking: 0.8 * u, maxWidth: cw - 12 * u });
           paragraph(ctx, v.benefit, cx + cw / 2, fy + 24 * u, cw - 16 * u, { size: 10 * u, lineHeight: 1.3, align: 'center', color: v.available ? COLORS.text : COLORS.dim, maxLines: 2 });
         } else {
@@ -247,7 +251,7 @@ function vesselSelect(game) {
         const dir = ndc.unproject(cam).sub(cam.position).normalize();
         g.position.copy(cam.position).addScaledVector(dir, D);
         const worldPerPx = (2 * D * tanHalf) / v.h;
-        const targetSize = Math.min(c.area.w * 0.8, c.area.h * 1.15) * worldPerPx;
+        const targetSize = Math.min(c.area.w * 0.8, c.area.h * 0.9) * worldPerPx;
         const scale = targetSize / (entry.ship.radius * 2);
         g.scale.setScalar(scale);
         g.userData.spin = (g.userData.spin ?? 0.6 + c.id.length) + dt * (c.selected ? 0.7 : 0.18);

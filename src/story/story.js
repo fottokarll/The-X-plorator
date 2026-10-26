@@ -6,7 +6,9 @@ import { ART } from './art-layout.js';
  * (desktop page, phone portrait, phone landscape). Words come from the string
  * table by id; art comes from art-layout.js (two crops of the approved art per
  * beat: `wide` for the desktop page, `tall` for single frames on phones).
- * `focus` is the horizontal centre (0..1) a narrow phone frame keeps in view.
+ * `focus` is the horizontal centre (0..1) a narrow phone frame keeps in view;
+ * `slide` lets that frame move to keep the drawn balloon whole (beat 7 keeps
+ * the hero ship instead and gets a balloon of the game's own).
  */
 export const STORY = Object.freeze([1, 2, 3, 4, 5, 6, 7].map(n => Object.freeze({
   n,
@@ -16,6 +18,7 @@ export const STORY = Object.freeze([1, 2, 3, 4, 5, 6, 7].map(n => Object.freeze(
   narration: `story.${n}.narration`,
   alt: `story.${n}.alt`,
   focus: [0.2, 0.3, 0.2, 0.36, 0.3, 0.58, 0.27][n - 1],
+  slide: n !== 7,
   art: { wide: ART.wide.panels[n - 1], tall: ART.tall.panels[n - 1] },
 })));
 
