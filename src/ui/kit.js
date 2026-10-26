@@ -237,6 +237,7 @@ const ICONS = {
   plus: ctx => { stroke(ctx, 'M12 5v14M5 12h14'); },
   minus: ctx => { stroke(ctx, 'M5 12h14'); },
   reset: ctx => { stroke(ctx, 'M5 12a7 7 0 117 7'); stroke(ctx, 'M5 7v5h5'); },
+  book: ctx => { stroke(ctx, 'M12 6.5c-2.2-1.6-5-2-8-1.5v13c3-.5 5.8-.1 8 1.5 2.2-1.6 5-2 8-1.5V5c-3-.5-5.8-.1-8 1.5z'); stroke(ctx, 'M12 6.5v13'); },
 };
 
 // ------------------------------------------------------------- hit registry
@@ -310,12 +311,20 @@ export function button(ctx, reg, id, x, y, w, h, label, { state = {}, primary = 
   const color = primary && enabled ? '#061433' : enabled ? (danger ? COLORS.danger : COLORS.text) : COLORS.faint;
   const size = (small ? 12 : 14) * u;
   let tx = align === 'left' ? x + h * 0.55 : x + w / 2;
+  // The label is centred in the room beside the icon and fitted to it.
+  let room = w - h * 1.0;
   if (ic) {
     const isz = h * 0.46;
-    if (align === 'left') { icon(ctx, ic, x + h * 0.55, y + h / 2, isz, primary && enabled ? '#061433' : COLORS.cyan); tx = x + h * 1.05; }
-    else icon(ctx, ic, x + h * 0.6, y + h / 2, isz, primary && enabled ? '#061433' : COLORS.cyan);
+    if (align === 'left') { icon(ctx, ic, x + h * 0.55, y + h / 2, isz, primary && enabled ? '#061433' : COLORS.cyan); tx = x + h * 1.05; room = w - h * 1.6; }
+    else {
+      icon(ctx, ic, x + h * 0.6, y + h / 2, isz, primary && enabled ? '#061433' : COLORS.cyan);
+      const natural = measure(ctx, label.toUpperCase(), size, primary ? 600 : 500, 2.2 * u);
+      const left = x + h * 1.0, right = x + w - h * 0.45;
+      room = right - left;
+      if (natural > w - h * 2.2) tx = (left + right) / 2;
+    }
   }
-  text(ctx, label.toUpperCase(), tx, y + h / 2 + 0.5, { size, weight: primary ? 600 : 500, color, align: align === 'left' ? 'left' : 'center', tracking: 2.2 * u });
+  text(ctx, label.toUpperCase(), tx, y + h / 2 + 0.5, { size, weight: primary ? 600 : 500, color, align: align === 'left' ? 'left' : 'center', tracking: 2.2 * u, maxWidth: Math.max(20, room) });
   if (hint) text(ctx, hint, x + w - h * 0.5, y + h / 2, { size: 11 * u, color: primary ? 'rgba(6,20,51,0.75)' : COLORS.faint, align: 'right' });
   else if (!primary && align === 'left' && enabled) icon(ctx, 'next', x + w - h * 0.55, y + h / 2, h * 0.36, 'rgba(112,226,244,0.75)');
   ctx.restore();

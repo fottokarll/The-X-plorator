@@ -46,6 +46,7 @@ function mainMenu(game) {
         ['continue', 'Continue', 'play', game.hasSave],
         ['new', 'New Journey', 'star', true],
         ['map', 'Galaxy Map', 'map', true],
+        ['prologue', 'Prologue', 'book', true],
         ['settings', 'Settings', 'settings', true],
       ];
       let x, y, bw, bh, gap, titleSize;
@@ -90,6 +91,7 @@ function mainMenu(game) {
           });
         } else game.openSelect();
       } else if (id === 'map') game.openMap('attract');
+      else if (id === 'prologue') game.openPrologue();
       else if (id === 'settings') game.ui.push('settings');
     },
     back() {},

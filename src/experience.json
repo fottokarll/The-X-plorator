@@ -1,19 +1,24 @@
 {
   "entry": "main.js",
   "name": "THE X-PLORATOR",
-  "description": "A serene cosmic exploration game. Fly a small white explorer through the blue-violet Outer Verge beneath a giant luminous planet: scan crystal asteroids, collect Cryon and Ferrite, return to Haven Outpost, upgrade your ship's modules in the hangar and grow a hexagonal orbital base. One-stick flight with auto-cruise, keyboard, controller and touch. M1 prototype.",
+  "description": "A serene cosmic exploration game. Read how humanity left a fading Earth in a seven-scene comic prologue, then fly a white and orange explorer through the blue-violet Outer Verge beneath a giant luminous planet: scan crystal asteroids, collect Cryon and Ferrite, return to Haven Outpost, upgrade your ship's modules in the hangar and grow a hexagonal orbital base. One-stick flight with auto-cruise, keyboard, controller and touch.",
   "maxPlayers": 8,
   "ui": "minimized",
   "stick": false,
   "loading": {
-    "background": "#071631",
+    "own": true,
+    "background": "#04060D",
     "accent": "#70E2F4",
     "text": "#E6F6FD"
   },
   "credits": [
     {
-      "work": "THE X-PLORATOR game code, procedural ship, planet, sky, station and interface",
-      "by": "Original work created for THE X-PLORATOR, all geometry and shaders generated in code"
+      "work": "THE X-PLORATOR game code, procedural ships, planet, sky, station, interface and synthesised sound",
+      "by": "Original work created for THE X-PLORATOR; geometry, shaders and sound generated in code"
+    },
+    {
+      "work": "Exodus prologue illustrations",
+      "by": "Original illustrations commissioned by THE X-PLORATOR's owner for this game (AI-assisted); all prologue text is set by the game"
     }
   ]
 }

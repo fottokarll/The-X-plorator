@@ -42,7 +42,17 @@ const hold = async (code, on) => {
 const releaseAll = async () => { for (const c of [...held]) await hold(c, false); };
 const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
 
-await page.waitForTimeout(2500);
+await page.waitForTimeout(1500);
+// M2: a fresh profile starts in the Exodus prologue. Read it with the keys
+// (→ six times), then BEGIN THE EXODUS (Space) opens the main menu.
+if ((await state()).top === 'story') {
+  for (let i = 0; i < 6; i++) { await tap('ArrowRight'); await page.waitForTimeout(250); }
+  await page.waitForTimeout(400);
+  await tap('Space');
+  await page.waitForFunction(() => window.__xpGame.debugState().top === 'menu', null, { timeout: 8000 });
+  note('prologue read, main menu');
+  await page.waitForTimeout(1200);
+}
 await tap('Space'); // New Journey (focused on a fresh profile)
 await page.waitForTimeout(1500);
 // Start Journey: focus moves down from the Survivor card to the buttons.

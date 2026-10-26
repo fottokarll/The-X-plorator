@@ -122,7 +122,11 @@ const p0 = {
   game: null,
   // Local QA switches from the address bar (not part of Project 0's p0):
   // ?perf=1 performance report, ?ship=m1 previous ship model, ?story=1 always show the prologue.
-  qa: { perf: params.has('perf'), ship: params.get('ship'), story: params.has('story') },
+  qa: {
+    perf: params.has('perf'), ship: params.get('ship'), story: params.has('story'),
+    // Failure and delay switches for the prologue and boot tests.
+    failboot: params.get('failboot'), artdelay: params.get('artdelay'), artfail: params.get('artfail'),
+  },
 };
 // ---------------------------------------------------------------- audio
 // Mirrors Project 0's sandbox shell (https://project0.city/sandbox/shell.js,
@@ -298,14 +302,22 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
+// experience.json "loading": { "own": true }: like Project 0, run the frame
+// loop from the moment the code arrives, while start() is still working, and
+// show the game's own loading screen instead of the veil. ?noown=1 behaves
+// like a host that does not apply it (the official dev kit loads only main.js).
 (async () => {
+  let own = false;
+  try { own = !params.has('noown') && (await (await fetch('/experience.json')).json())?.loading?.own === true; } catch { /* default veil */ }
+  const hideVeil = () => { veil.style.opacity = '0'; setTimeout(() => veil.remove(), 700); };
+  if (own) { hideVeil(); requestAnimationFrame(frame); }
+  window.__xpOwnLoading = own;
   try {
     window.__xpGame = await start(p0);
-    veil.style.opacity = '0';
-    setTimeout(() => veil.remove(), 700);
+    if (!own) hideVeil();
     window.__xpReady = true;
   } catch (e) {
     showError(e);
   }
-  requestAnimationFrame(frame);
+  if (!own) requestAnimationFrame(frame);
 })();

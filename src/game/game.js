@@ -19,6 +19,8 @@ import { createUi } from '../ui/ui.js';
 import { viewInfo, UI_FX } from '../ui/kit.js';
 import { createHud } from '../ui/hud.js';
 import { createPerfReport } from '../ui/perf-report.js';
+import { createStoryScreen, createTranscriptScreen } from '../ui/story-screen.js';
+import { createBootState, runTask } from '../boot/boot-state.js';
 import { registerScreens } from '../ui/screens.js';
 import { createHangarScreen } from '../ui/hangar.js';
 import { createMapScreen } from '../ui/galaxy-map.js';
@@ -72,30 +74,34 @@ export async function createGame(p0) {
   }
   let qualityName = resolveQuality(profile.settings.quality);
 
-  // ------------------------------------------------------------- world
-  loading(0.12, 'painting the nebula');
+  // ------------------------------------------------------------- boot + prologue
+  // The interface comes first. With "loading": { "own": true } in
+  // experience.json, Project 0 runs the frame loop from the moment this code
+  // arrives (sandbox runtime.js, read 2026-10-25), so the reader is already in
+  // the Exodus prologue while the world is built below. Every boot step is a
+  // real task in `boot`; BEGIN appears only when all required ones are done.
   const bootT0 = performance.now();
-  const layout = buildSectorLayout();
-  const world = createWorld({
-    renderer, scene, quality: QUALITY[qualityName], layout,
-    baseTiles: profile.base, powered: profile.powered, vessel: profile.vessel, loadout: profile.equipped,
-  });
-  const bootWorldMs = performance.now() - bootT0;
-  for (const [id, n] of Object.entries(profile.nodes)) world.field.setNodeAmount(id, n.amount);
-  // Software renderers (e.g. Project 0's review): drop the costliest large
-  // translucent layers; the composition still reads as the same scene.
-  if (soft.software) {
-    world.planet.group.children.forEach(c => { if (c.name === 'PlanetRing' || c.name === 'PlanetAtmosphere') c.visible = false; });
-  }
-  const fx = createFxLayer();
-  world.universe.add(fx.group);
-  loading(0.5, 'assembling Haven Outpost');
+  const clock = { time: 0 };
+  const qa = p0.qa ?? {}; // local test switches (standalone page only)
+  const boot = createBootState();
+  boot.add('profile', { label: 'reading the ship log', weight: 0.2 })
+    .add('world', { label: 'painting the nebula', weight: 4 })
+    .add('systems', { label: 'assembling Haven Outpost', weight: 1 })
+    .add('engines', { label: 'warming the engines', weight: 4 })
+    .add('interface', { label: 'preparing the interface', weight: 1 })
+    .add('sound', { label: 'tuning the radio', weight: 0.3, required: false });
+  boot.start('profile');
+  boot.done('profile');
+  const retryWaiters = new Map();
+  const waitRetry = id => new Promise(resolve => retryWaiters.set(id, resolve));
+  const retryBoot = () => {
+    const failed = boot.failed;
+    const resume = failed && retryWaiters.get(failed.id);
+    if (resume) { retryWaiters.delete(failed.id); resume(); }
+  };
+  const yieldFrame = (ms = 16) => new Promise(resolve => setTimeout(resolve, ms));
 
   const overlay = createOverlay();
-  const pipeline = createPipeline({ renderer, scene, camera, overlay });
-  pipeline.setQuality(qualityName);
-  if (soft.software) pipeline.setSoftwareScale(0.72);
-  const camRig = createCinematicCamera(camera);
   const audio = createAudio(p0);
   const configureAudio = () => {
     const s = profile.settings;
@@ -103,8 +109,8 @@ export async function createGame(p0) {
   };
   const ui = createUi({
     overlay,
-    onActivate: () => audio.play('ui', game.time),
-    onScreen: id => p0.log?.(`[xplorator] screen ${id} at ${game.time.toFixed(1)} s`),
+    onActivate: () => audio.play('ui', clock.time),
+    onScreen: id => p0.log?.(`[xplorator] screen ${id} at ${clock.time.toFixed(1)} s`),
   });
 
   const input = createInputHub({
@@ -117,10 +123,108 @@ export async function createGame(p0) {
   input.setOptions({ invert: profile.settings.invertY, sens: profile.settings.sensitivity });
   if (viewInfo(viewport().w, viewport().h).phone) input.device = 'touch';
 
+  const storyScreen = createStoryScreen({
+    p0, boot,
+    isReducedMotion: () => profile.settings.reducedMotion,
+    onBegin: () => game.finishPrologue(),
+    onLeave: () => { try { p0.exit?.(); } catch { /* host */ } },
+    onRetry: retryBoot,
+    deviceHint: () => input.device,
+  });
+  ui.register('story', storyScreen);
+  ui.register('transcript', createTranscriptScreen({ onClose: () => ui.pop() }));
+  boot.onChange(() => { loading(Math.min(0.98, boot.fraction), boot.current?.label ?? 'ready'); storyScreen.bootChanged(); });
+  let uiSize = '';
+  const resizeUi = () => {
+    const v = viewport();
+    const key = `${v.w}x${v.h}@${v.pr}`;
+    if (key === uiSize) return;
+    uiSize = key;
+    ui.resize(v.w, v.h, v.pr);
+  };
+  resizeUi();
+  // A player who read (or skipped) the prologue before, on this account, waits
+  // on a short welcome card instead; guests have no saved flag, so they see it
+  // again on their next visit and can skip it.
+  const returning = Boolean(profile.flags.prologueSeen) && !qa.story;
+  let mode = 'story'; // story | attract | select | flight | docking | docked | launching | hangar | base | map
+  ui.show('story', { mode: returning ? 'welcome' : 'story' });
+  // The ambient music may play under the prologue (from the first click or key).
+  configureAudio();
+
+  // Input from the first frame (the boot frames read it too).
+  const safe = fn => e => { try { fn(e ?? {}); } catch (err) { p0.log?.('input error:', err?.message); } };
+  let pointerLogged = false;
+  p0.on?.('pointerdown', safe(e => {
+    audio.gesture();
+    if (!pointerLogged) { pointerLogged = true; p0.log?.('[xplorator] pointer fields:', Object.keys(e).join(','), 'touch=' + Boolean(e.touch)); }
+    if (e.touch) input.device = 'touch';
+    ui.pointerDown(e);
+  }));
+  p0.on?.('pointermove', safe(e => ui.pointerMove(e)));
+  p0.on?.('pointerup', safe(e => ui.pointerUp(e)));
+  p0.on?.('keydown', safe(e => { audio.gesture(); input.latchKey(typeof e === 'string' ? e : e.code); }));
+
+  // One frame entry. Until the game is ready only the interface is drawn
+  // (the prologue covers the screen); then the full loop takes over.
+  let mainFrame = null;
+  const renderInterfaceOnly = () => {
+    renderer.setRenderTarget(null);
+    renderer.setClearColor(0x04060d, 1);
+    renderer.clear(true, true, true);
+    overlay.render(renderer);
+  };
+  let firstFrameLogged = false;
+  p0.loop((dtRaw, time) => {
+    if (mainFrame) { mainFrame(dtRaw, time); return; }
+    if (!firstFrameLogged) { firstFrameLogged = true; p0.log?.(`[xplorator] first prologue frame at ${Math.round(performance.now())} ms (boot +${Math.round(performance.now() - bootT0)} ms)`); }
+    try {
+      const dt = Math.min(Math.max(Number(dtRaw) || 0, 0), 0.1);
+      clock.time += dt;
+      resizeUi();
+      const inp = input.poll(dt, { menu: ui.menuInput });
+      ui.handleEdges(inp.edges);
+      audio.update();
+      ui.update(dt);
+      renderInterfaceOnly();
+    } catch (e) { p0.log?.('boot frame:', e?.message); }
+  });
+
+  // ------------------------------------------------------------- world
+  // Let the first prologue frame and its first panel reach the screen before
+  // the heavy steps below hold this thread (at most 0.9 s on a slow network).
+  await yieldFrame(30);
+  const firstArt = await storyScreen.whenFirstArt(900);
+  p0.log?.(`[xplorator] first panel ${firstArt} before the world build (boot +${Math.round(performance.now() - bootT0)} ms)`);
+  const layout = buildSectorLayout();
+  const sceneBefore = new Set(scene.children);
+  const world = await runTask(boot, 'world', async () => {
+    if (qa.failboot === 'world' && boot.get('world').attempts === 1) throw new Error('simulated failure (local test)');
+    return createWorld({
+      renderer, scene, quality: QUALITY[qualityName], layout,
+      baseTiles: profile.base, powered: profile.powered, vessel: profile.vessel, loadout: profile.equipped,
+    });
+  }, { waitRetry, cleanup: () => { for (const c of [...scene.children]) if (!sceneBefore.has(c)) scene.remove(c); } });
+  const bootWorldMs = performance.now() - bootT0;
+  boot.start('systems');
+  await yieldFrame();
+  for (const [id, n] of Object.entries(profile.nodes)) world.field.setNodeAmount(id, n.amount);
+  // Software renderers (e.g. Project 0's review): drop the costliest large
+  // translucent layers; the composition still reads as the same scene.
+  if (soft.software) {
+    world.planet.group.children.forEach(c => { if (c.name === 'PlanetRing' || c.name === 'PlanetAtmosphere') c.visible = false; });
+  }
+  const fx = createFxLayer();
+  world.universe.add(fx.group);
+
+  const pipeline = createPipeline({ renderer, scene, camera, overlay });
+  pipeline.setQuality(qualityName);
+  if (soft.software) pipeline.setSoftwareScale(0.72);
+  const camRig = createCinematicCamera(camera);
+
   // ------------------------------------------------------------- state
   const flight = createFlightState();
   let flightProfile = profileFor(profile.settings.handling, stats);
-  let mode = 'attract'; // attract | select | flight | docking | docked | launching | hangar | base | map
   let paused = false;
   let scanning = null, mining = null, docking = null, launching = null;
   let warning = null;
@@ -714,10 +818,16 @@ export async function createGame(p0) {
     for (const [id, r] of world.remote) if (!seen.has(id)) { world.universe.remove(r.object); r.ship.dispose(); world.remote.delete(id); }
   }
 
+  function setHelpHud() {
+    try { p0.hud?.(input.device === 'touch' ? HELP_TEXT_TOUCH : HELP_TEXT); } catch { /* optional */ }
+  }
+
   // ------------------------------------------------------------- game API for screens
   let lastInput = { boost: 0, brake: 0 };
   const game = {
-    p0, ui, input, world, layout, overlay, time: 0,
+    p0, ui, input, world, layout, overlay, boot,
+    get time() { return clock.time; },
+    set time(v) { clock.time = v; },
     get profile() { return profile; },
     get stats() { return stats; },
     get hasSave() { return hasSave; },
@@ -752,7 +862,10 @@ export async function createGame(p0) {
       if (ui.is('pause')) ui.pop();
     },
     startNewJourney(vessel = 'survivor') {
+      // A new journey keeps what the player has already seen (the prologue).
+      const flags = { ...profile.flags };
       profile = newProfile(vessel);
+      profile.flags = flags;
       hasSave = true;
       applyStats();
       world.setShip(profile.vessel, profile.equipped);
@@ -775,6 +888,21 @@ export async function createGame(p0) {
       camRig.reset();
       if (saveQueued) saveNow();
       ui.show('menu');
+      setHelpHud();
+    },
+    /** BEGIN THE EXODUS (or SKIP when ready): to the main menu, never into flight. */
+    finishPrologue() {
+      if (!boot.ready) return;
+      profile.flags.prologueSeen = true;
+      // Signed-in players keep the flag with their save; a new player's first
+      // save is written when the journey starts.
+      if (hasSave) saveSoon();
+      game.toMenu();
+    },
+    openPrologue() {
+      paused = false;
+      mode = 'story';
+      ui.show('story', { mode: 'story' });
     },
     openSelect() {
       mode = 'select';
@@ -882,7 +1010,9 @@ export async function createGame(p0) {
       }
     },
     resetProgress() {
+      const flags = { ...profile.flags };
       profile = newProfile();
+      profile.flags = flags;
       hasSave = false;
       applyStats();
       world.setShip(profile.vessel, profile.equipped);
@@ -906,6 +1036,8 @@ export async function createGame(p0) {
         target, targetId: obj.target, kind: obj.kind, scanRange: stats.scanRange, scanning: Boolean(scanning), mining: Boolean(mining),
         interact: interactState(), fraction: camRig.state.measured, quality: qualityName,
         equipped: { ...profile.equipped }, inventory: [...profile.inventory], powered: profile.powered,
+        story: ui.has('story') ? storyScreen.debug() : null, boot: { ready: boot.ready, fraction: +boot.fraction.toFixed(3), tasks: boot.snapshot() },
+        prologueSeen: profile.flags.prologueSeen,
       };
     },
   };
@@ -937,6 +1069,7 @@ export async function createGame(p0) {
     const key = `${v.w}x${v.h}@${v.pr}`;
     if (!force && key === lastSize) return;
     lastSize = key;
+    uiSize = key;
     pipeline.resize(v.w, v.h, v.pr);
     ui.resize(v.w, v.h, v.pr);
     camera.aspect = v.w / v.h;
@@ -944,64 +1077,58 @@ export async function createGame(p0) {
   }
   resize(true);
 
-  const safe = fn => e => { try { fn(e ?? {}); } catch (err) { p0.log?.('input error:', err?.message); } };
-  let pointerLogged = false;
-  p0.on?.('pointerdown', safe(e => {
-    audio.gesture();
-    if (!pointerLogged) { pointerLogged = true; p0.log?.('[xplorator] pointer fields:', Object.keys(e).join(','), 'touch=' + Boolean(e.touch)); }
-    if (e.touch) input.device = 'touch';
-    ui.pointerDown(e);
-  }));
-  p0.on?.('pointermove', safe(e => ui.pointerMove(e)));
-  p0.on?.('pointerup', safe(e => ui.pointerUp(e)));
   p0.on?.('wheel', safe(e => {
     const dy = e.deltaY ?? e.dy ?? e.y ?? 0;
     if (ui.topId === 'map') ui.screen('map').wheel?.(dy);
+    else if (ui.topId === 'transcript') ui.screen('transcript').wheel?.(dy);
     else if (mode === 'flight') camRig.zoomBy(Math.sign(dy) * 0.08);
   }));
-  p0.on?.('keydown', safe(e => { audio.gesture(); input.latchKey(typeof e === 'string' ? e : e.code); }));
   p0.on?.('resize', () => resize());
   p0.on?.('pad', active => { input.device = active ? 'pad' : 'kbm'; ui.invalidate(); });
   p0.on?.('pointerlock', () => ui.cancelTouches());
   p0.on?.('update', () => toast('A new version is ready next time you enter', '#70E2F4'));
 
-  // Start in the menu with the attract flight behind it.
+  // The attract flight waits behind the prologue (the menu shows it).
   placeAtDock(4);
   updateAttract(0.016);
-  ui.show('menu');
+  boot.done('systems');
 
   // ------------------------------------------------------------- warm-up
-  loading(0.75, 'warming the engines');
-  updateCamera(0.016);
-  world.setCameraWorld(camWorld, anchor);
-  world.updateEffects(0.016, 0, { camera, viewportHeight: viewport().h, pixelRatio: viewport().pr, thrust: 0.5, boosting: false });
-  // Make every material visible once (showroom pad included) for compilation.
-  hangarPad.visible = true;
-  // Build the four vessel previews now, so the selection screen opens without a stall.
-  for (const v of VESSELS) {
-    showroomShip(`select-${v.id}`, v.id, undefined).ship.group.visible = true;
-    showroomStage(`select-${v.id}`).visible = true;
-  }
-  fx.prepare();
-  UI_FX.shadows = qualityName !== 'low';
-  const warm = await pipeline.warmUp(f => loading(0.75 + 0.15 * f, 'warming the engines'));
+  const warm = await runTask(boot, 'engines', async progress => {
+    const modeBefore = mode;
+    mode = 'attract';
+    updateCamera(0.016);
+    mode = modeBefore;
+    world.setCameraWorld(camWorld, anchor);
+    world.updateEffects(0.016, 0, { camera, viewportHeight: viewport().h, pixelRatio: viewport().pr, thrust: 0.5, boosting: false });
+    // Make every material visible once (showroom pad included) for compilation.
+    hangarPad.visible = true;
+    // Build the four vessel previews now, so the selection screen opens without a stall.
+    for (const v of VESSELS) {
+      showroomShip(`select-${v.id}`, v.id, undefined).ship.group.visible = true;
+      showroomStage(`select-${v.id}`).visible = true;
+    }
+    fx.prepare();
+    UI_FX.shadows = qualityName !== 'low';
+    try { return await pipeline.warmUp(progress); } finally { hangarPad.visible = false; hideShowroom(); fx.reset(); }
+  }, { waitRetry });
   // Draw every screen once (the canvas renderer compiles its effects lazily).
-  const prewarmStart = performance.now();
-  for (const id of ['hud', 'select', 'hangar', 'map', 'base', 'pause', 'settings', 'docked', 'complete', 'help', 'menu']) {
-    ui.prewarm(id);
-    // One marker sprite too, so the sprite pipeline compiles now rather than at launch.
-    overlay.spritesBegin();
-    overlay.sprite(-50, -50, 8, 1, [0, 0, 0, 0]);
-    overlay.spritesEnd();
-    overlay.render(renderer);
-    loading(0.9 + 0.08 * (performance.now() - prewarmStart > 0 ? 1 : 0), 'preparing the interface');
-    await new Promise(resolve => setTimeout(resolve, 16));
-  }
-  ui.invalidate();
+  // Between two screens the prologue frame redraws (prewarm marks it dirty).
+  await runTask(boot, 'interface', async progress => {
+    const ids = ['hud', 'select', 'hangar', 'map', 'base', 'pause', 'settings', 'docked', 'complete', 'help', 'menu', 'choice'];
+    for (const [i, id] of ids.entries()) {
+      ui.prewarm(id);
+      // One marker sprite too, so the sprite pipeline compiles now rather than at launch.
+      overlay.spritesBegin();
+      overlay.sprite(-50, -50, 8, 1, [0, 0, 0, 0]);
+      overlay.spritesEnd();
+      overlay.render(renderer);
+      progress((i + 1) / ids.length);
+      await yieldFrame();
+    }
+    ui.invalidate();
+  }, { waitRetry });
   const warmMs = warm.total;
-  hangarPad.visible = false;
-  hideShowroom();
-  fx.reset();
   // Compile time is not frame time: only a software renderer (or a material
   // taking very long to compile, as on one) starts on the light version; slow
   // frames are handled at runtime.
@@ -1012,17 +1139,21 @@ export async function createGame(p0) {
     resize(true);
   }
   p0.log?.(`[xplorator] renderer=${soft.name} quality=${qualityName} warmup=${Math.round(warmMs)}ms (${warm.kinds} material kinds, slowest ${Math.round(warm.slowest)}ms) world=${Math.round(bootWorldMs)}ms`);
-  try { p0.hud?.(input.device === 'touch' ? HELP_TEXT_TOUCH : HELP_TEXT); } catch { /* optional */ }
-  configureAudio();
+  boot.start('sound');
+  audio.preload();
+  boot.done('sound');
+  if (mode !== 'story') setHelpHud();
   loading(1, 'Outer Verge');
-  // Let the final progress message reach the host before start() resolves.
-  await new Promise(resolve => setTimeout(resolve, 60));
+  // Let the final progress message reach the host before start() resolves:
+  // the runtime sends at most one update every 250 ms and drops a pending one
+  // when start() returns (M1 waited 60 ms and the bar stayed at 97 %).
+  await new Promise(resolve => setTimeout(resolve, 300));
 
   // ------------------------------------------------------------- frame loop
   let slowFrames = 0;
   let lastLoopMs = 0;
   p0.log?.(`[xplorator] start() finished after ${Math.round(performance.now() - bootT0)} ms`);
-  p0.loop((dtRaw) => {
+  mainFrame = (dtRaw) => {
     // Diagnostic for very long frames (wall clock; dev console only).
     const nowMs = performance.now();
     if (lastLoopMs && nowMs - lastLoopMs > 1000) p0.log?.(`[xplorator] long frame ${Math.round(nowMs - lastLoopMs)} ms in ${mode}/${ui.topId} at ${game.time.toFixed(1)} s`);
@@ -1035,6 +1166,16 @@ export async function createGame(p0) {
     const inp = input.poll(dt, { menu: ui.menuInput });
     lastInput = inp;
     ui.handleEdges(inp.edges);
+
+    if (mode === 'story') {
+      // The prologue covers the screen: no world to simulate or draw.
+      if (storyScreen.mode === 'welcome' && ui.is('story') && boot.ready) game.toMenu();
+      if (saveQueued) { saveTimer -= dt; if (saveTimer <= 0) saveNow(); }
+      audio.update();
+      ui.update(dt);
+      renderInterfaceOnly();
+      return;
+    }
 
     if (mode === 'attract') updateAttract(dt);
     else if (mode === 'flight' && !paused) updateFlight(dt, inp);
@@ -1075,7 +1216,7 @@ export async function createGame(p0) {
       qualityName = 'low';
       UI_FX.shadows = false; pipeline.setQuality('low'); resize(true); slowFrames = 0;
     }
-  });
+  };
 
   return game;
 }
