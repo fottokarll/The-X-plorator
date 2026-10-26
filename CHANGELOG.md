@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.3.0-m2 — 2026-10-26 (branch `dev/m2-exodus-comic-ship`, release candidate, not published)
+
+Full report: [M2_UPDATE_REPORT.md](M2_UPDATE_REPORT.md).
+
+### Added
+- **Exodus prologue**: the owner's approved seven-beat comic as the loading screen (`"loading":
+  { "own": true }`), desktop page / phone portrait / phone landscape layouts from one story array,
+  every word as real text from `src/story/strings.en.js`, honest boot progress, BEGIN only when ready,
+  SKIP, transcript, retry on errors, replay from the main menu (`docs/EXODUS_PROLOGUE.md`).
+- **XPLORATOR_EXPLORER_MK2**: the new white and orange explorer, procedural, three draw calls, same
+  gameplay radius as M1; the M1 ship stays for rollback (`docs/SHIP_MK2.md`).
+- **First-flight tutorial** with Mira of Haven Control, event-driven, skip/resume/replay; optional pilot
+  portrait (`docs/TUTORIAL.md`).
+- Music and effects volume sliders; developer performance report; developer ship A/B switch.
+- Tools: `audio-loop-check.mjs`, `load-timing.mjs`, `comic-art.py`, `ship-shots.mjs`, ship turntable
+  `standalone/ship-viewer.html`, `m2-checks.mjs`, `capture-m2.sh`; 25 new unit tests (61 total).
+
+### Fixed
+- Music loop seam (filter start, the streamed music player, resampling at decode) and the mix (effects
+  now 8-9 dB under the music; a soft sonar chord replaces the harsh scan) (`docs/AUDIO.md`).
+- Foggy, low-contrast vessel previews; white glare on the ship, hangar and station (bloom threshold,
+  exposure, materials).
+- Overlapping HUD messages on phones; small top-right buttons; a mouse drag switching to the touch HUD.
+- Guests' refused saves (HTTP 401) retried all session.
+- The final loading message was dropped by the host's 250 ms throttle (bar stuck at 97 %).
+
+### Changed
+- Vessel cards: Survivor selected and free; 2/5/10 ATT vessels clearly *locked previews of planned
+  ships*; a pressure-free CONTINUE FREE / VIEW OTHER SHIPS check.
+- Saves: still version 1, new fields only; M1 saves load unchanged.
+- One shared shader program for every white hull (faster start on software renderers).
+
+### Not done / not verified
+- Server validation (needs the owner's key), the live city, physical phones and controllers.
+- The prologue art is cleaned crops of the approved composites, not production masters.
+
 ## 0.2.1-m1 — 2026-10-24 (branch `dev/m1-outer-verge`)
 
 ### Published

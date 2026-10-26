@@ -121,3 +121,25 @@ fullscreen button in the top-left corner of the experience (~48 px); Enter opens
 - The real review's software renderer frame rate.
 - Multiplayer with two real accounts (presence code uses documented `p0.me` / `p0.players`).
 - Prizes, items, purchases, duels, notes: deliberately unused in M1 (no ATT, no rewards).
+
+## M2 additions (verified 25-26 Oct 2026)
+
+Sources re-read: `skill.md`, `guides/games.md`, `guides/assets.md` (live), plus the sandbox scripts
+the city and the dev kit serve to every player (`/sandbox/shell.js`, `/sandbox/runtime.js`), read to
+understand documented behaviour, not to use anything undocumented.
+
+| Fact | Where verified | Consequence for the game |
+|---|---|---|
+| `experience.json` `"loading": { "own": true }`: "the frame loop runs from the moment your code arrives" while `start(p0)` works; the city shows only a thin bar | skill.md §6; runtime.js runs `frame` before `await start(p0)` when `exp.own` | The Exodus prologue is the loading screen; boot work runs below it as tasks |
+| The dev kit "loads only the entry module": it does not apply `experience.json` | skill.md; observed (veil until `start()` resolves) | In the dev kit the prologue appears once the game is ready |
+| `p0.loading` sends at most one update every 250 ms and drops a pending one when `start()` resolves | runtime.js (`loadMoved`, `loadDone`) | Wait 300 ms after `loading(1)` (M1's 60 ms left the bar at 97 %) |
+| `p0.music` = one HTML `Audio` element with `loop` (gap at the seam; `volume` ignored on iOS) | shell.js | The music plays through `p0.sound` instead |
+| `p0.sound.play` decodes the file into a Web Audio buffer and loops it sample-accurately (`loop: true`); `pause`/`resume` keep the position; per-sound volume at start only; the 33rd sound evicts the oldest | shell.js, runtime.js | One looping music sound; volume changes restart it once at the estimated position |
+| Browsers resample the file to the AudioContext rate on decode, bending the buffer's ends | measured (OfflineAudioContext, 44.1/48 kHz) | Loop starts at a flat zero crossing |
+| `THREE.ImageBitmapLoader` + `p0.asset()` load package WebP images inside the worker | dev kit: panel 1 decoded in 105-138 ms, 0 blocked requests | Prologue panels drawn into the interface canvas (no WebGL textures) |
+| A guest's `p0.save` answers `ok: false` (HTTP 401 in the city) | skill.md; observed live in M1 | Save once per session, then stop and say so |
+| Content rules: no fake payment dialogs, no real logos or people | skill.md, games.md §9 | ATT vessels are labelled previews; fictional story and characters |
+
+Not verified in M2: the city's own loading screen with `loading.own` (needs a publish), the real
+review, `p0.hud` in the city with `ui: minimized`, physical phones. Server validation was not run (no
+key in this session).

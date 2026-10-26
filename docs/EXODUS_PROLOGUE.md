@@ -113,7 +113,7 @@ Boot tasks (`src/boot/boot-state.js`): profile, world, systems, engines (shader 
 
 | | First prologue frame | Panel 1 drawn | Game ready |
 |---|---|---|---|
-| No throttling, 1280 × 720 | 0.56 s | 0.89 s | 5.97 s (M2 before the first-panel wait: panel 1 at 2.97 s) |
+| No throttling, 1280 × 720 (final build) | 0.57 s | 0.94 s | 6.1 s (before the first-panel wait, panel 1 came at 2.97 s) |
 | Fast 3G emulated, phone 390 × 844, three.js already present | 9.1 s | 10.0 s | 13.5 s |
 
 The Fast 3G figure is pessimistic for Project 0: the standalone page loads about 35 unbundled,
@@ -122,5 +122,5 @@ package on publish and the city already has three.js. It has not been measured i
 needs a publish).
 
 Official dev kit (real sandbox, does **not** apply `experience.json`, so it shows its own veil until
-`start()` returns and the prologue appears ready): started in 7.9 s (50 files, 698 KB), 0 errors,
-panel 1 decoded in 138 ms inside the worker.
+`start()` returns and the prologue appears ready): final build started in 4.9 s (49 files, 493 KB),
+0 errors, panel 1 decoded in 105-138 ms inside the worker.

@@ -43,7 +43,7 @@ async function open({ size = [1280, 720], touch = false, query = 'fresh=1', save
   const key = async (code, ms = 70) => { await page.keyboard.down(code); await page.waitForTimeout(ms); await page.keyboard.up(code); };
   // A standard controller through the host's test hook (window.__fakePad).
   // Presses as long as a person's (a 120 ms tap can fall inside one long frame).
-  const pad = async (axes, button = -1, ms = 200) => {
+  const pad = async (axes, button = -1, ms = 350) => {
     await page.evaluate(([a, b]) => { const buttons = Array(17).fill(0); if (b >= 0) buttons[b] = 1; window.__fakePad = { axes: [a[0], a[1], 0, 0], buttons }; }, [axes, button]);
     await page.waitForTimeout(ms);
     await page.evaluate(() => { window.__fakePad = { axes: [0, 0, 0, 0], buttons: Array(17).fill(0) }; });
@@ -120,7 +120,11 @@ await check('gamepad', async notes => {
   await g.pad([0, 0], 0); // A: Continue free
   await g.page.waitForTimeout(6000);
   const s0 = await g.state();
-  await g.pad([0.9, 0], -1, 1600); // left stick: steer
+  // Left stick: steer, held until the game has counted 1 s of steering (game
+  // time runs slower than the wall clock when frames are slow) or 5 s pass.
+  await g.page.evaluate(() => { window.__fakePad = { axes: [0.9, 0, 0, 0], buttons: Array(17).fill(0) }; });
+  for (let t = 0; t < 25 && (await g.state()).tutorial.step === 'steer'; t++) await g.page.waitForTimeout(200);
+  await g.page.evaluate(() => { window.__fakePad = { axes: [0, 0, 0, 0], buttons: Array(17).fill(0) }; });
   await g.page.waitForTimeout(400);
   const s1 = await g.state();
   await g.shot('gamepad-flight');

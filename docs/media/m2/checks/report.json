@@ -1,0 +1,69 @@
+{
+  "date": "2026-10-26T02:37:03.897Z",
+  "browser": "Chromium (Playwright), headed, GPU",
+  "results": [
+    {
+      "name": "rotation",
+      "ok": true,
+      "notes": [
+        "portrait panel 3 (single) -> landscape panel 3 (cinema)",
+        "errors 0"
+      ],
+      "seconds": 7.2
+    },
+    {
+      "name": "ready",
+      "ok": true,
+      "notes": [
+        "menu before ready: false",
+        "after ready: story/begin",
+        "10 s later: story/begin",
+        "after Space: menu",
+        "errors 0"
+      ],
+      "seconds": 24.8
+    },
+    {
+      "name": "oldsave",
+      "ok": true,
+      "notes": [
+        "first screen story, menu menu, after Continue flight",
+        "bank 6/2, engine Lv 2, step free, tutorial done true",
+        "saved: prologueSeen true, music muted kept true, musicVolume 0.8",
+        "errors 0"
+      ],
+      "seconds": 11.6
+    },
+    {
+      "name": "exposure",
+      "ok": true,
+      "notes": [
+        "low: low, errors 0",
+        "medium: medium, errors 0",
+        "high: high, errors 0"
+      ],
+      "seconds": 42.4
+    },
+    {
+      "name": "buttons",
+      "ok": true,
+      "notes": [
+        "boost flight, scan no signal in range, base base, hangar hangar, map map, hangar(top) hangar, pause pause, resume hud",
+        "errors 0"
+      ],
+      "seconds": 31.9
+    },
+    {
+      "name": "gamepad",
+      "ok": true,
+      "notes": [
+        "menu menu, select select, check choice, mode flight",
+        "yaw 0.00 -> -1.09",
+        "tutorial steer -> speed",
+        "errors 0"
+      ],
+      "seconds": 25.7
+    }
+  ],
+  "note": "gamepad re-run separately after the check held the stick until the game counted it (slow frames on a busy machine); earlier runs with 350 ms presses also passed twice"
+}

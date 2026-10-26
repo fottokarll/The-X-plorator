@@ -1,7 +1,9 @@
 # THE X-PLORATOR 🚀
 
 **A serene cosmic exploration and colony-building game for Project 0 City (lot #323) and the browser.**
-Status: **M1 "Outer Verge" playable prototype** (branch `dev/m1-outer-verge`), **live on Project 0 lot #323** since 24 Oct 2026 (https://project0.city/lot/323).
+Status: **M2 release candidate** on branch `dev/m2-exodus-comic-ship` (Exodus prologue, new Explorer Mk2,
+first-flight tutorial, audio and visual polish), awaiting the owner's review. Lot #323 still runs **M1
+"Outer Verge"** (live since 24 Oct 2026, https://project0.city/lot/323; tag `m1-live-lot323`).
 
 Humanity flees a devastated Earth. As pilot of a small evacuation ship, explore a luminous blue-violet
 galaxy, scan and collect resources, upgrade your modular spacecraft, build hexagonal orbital bases and
@@ -14,7 +16,17 @@ cd ~/The-X-plorator && npm install && npm start     # then open http://127.0.0.1
 ```
 
 Full instructions, controls, phone access, dev kit and tests: **[RUN.md](RUN.md)**.
-What was built and verified: **[MORNING_REPORT.md](MORNING_REPORT.md)**.
+M2 (this branch): **[M2_UPDATE_REPORT.md](M2_UPDATE_REPORT.md)**. M1: [MORNING_REPORT.md](MORNING_REPORT.md).
+
+## What M2 adds
+
+- **The Exodus prologue**: a seven-scene comic of humanity leaving a fading Earth, shown while the game
+  loads, read at your own pace on desktop and phones, every word as real text.
+- **The Explorer Mk2**: the new white and orange twin-engine explorer, modelled in code.
+- **First flight with Haven Control**: Mira guides one complete loop, one task at a time.
+- **A seamless music loop and a calmer mix**, music and effects volumes, a soft sonar scan.
+- **Clearer vessel choice** (the free Survivor plays the whole game; other ships are previews), no white
+  glare, a calmer HUD on phones.
 
 ## What M1 contains
 
@@ -53,9 +65,13 @@ src/                 Project 0 experience package root (experience.json + ES mod
   camera/            distant cinematic follow camera
   input/             keyboard bindings, gamepad + touch mappers, input hub, ID-less contact tracker
   render/            sky, planets, ship, asteroids, station, effects, pipeline (bloom, final pass)
-  ui/                canvas UI kit, HUD, menus, hangar, galaxy map, base builder
+  ui/                canvas UI kit, HUD, menus, hangar, galaxy map, base builder, prologue viewer, portraits
+  story/             Exodus prologue: story array, English strings by id, art layout, reading rules
+  boot/              boot tasks with honest progress, failure and retry
+  tutorial/          first-flight tutorial rules and text
+  assets/            synthesised sounds (audio/) and the prologue panels (comic/)
   planet-generator.js  deterministic planet generator (also used by Planet_Lab.html)
-standalone/          browser host implementing the documented subset of the p0 object
+standalone/          browser host implementing the documented subset of the p0 object; ship-viewer.html
 lot/                 lot #323 street build generator (LOD0/1/2, lot.json, shaders, build.js)
 tools/               local server, Playwright capture/playtest/dev kit drivers, packaging, validation
 tests/               node --test suites
@@ -67,7 +83,9 @@ docs/                design, decisions, P0 audit, lot build, publish checklist, 
 - **Never modify STARBOX or Project 0 lot #696.** This game lives on lot #323.
 - Do not publish, charge Attention Tokens, or put keys in source without explicit approval. Keys are
   read from `P0_KEY_FILE` / `P0_KEY` only.
-- Original procedural art only; reference images stay private (never in this public repository).
+- Original procedural art, plus the owner's approved Exodus prologue illustrations (processed panels in
+  `src/assets/comic/`, provenance in `docs/EXODUS_PROLOGUE.md`). Reference images and source composites
+  stay private (never in this public repository).
 - Read the current [skill.md](https://project0.city/skill.md),
   [games guide](https://project0.city/guides/games.md) and
   [assets guide](https://project0.city/guides/assets.md) before changing the integration; never

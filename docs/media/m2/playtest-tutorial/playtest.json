@@ -1,0 +1,151 @@
+{
+  "ok": true,
+  "final": {
+    "mode": "flight",
+    "top": "hud",
+    "pos": [
+      7.794228634059948,
+      11.573144457268826,
+      52.9550727142221
+    ],
+    "yaw": -2.85947182337773e-21,
+    "pitch": 0.07386302537429647,
+    "speed": 13,
+    "step": "free",
+    "cargo": {
+      "cryon": 0,
+      "ferrite": 0
+    },
+    "bank": {
+      "cryon": 6,
+      "ferrite": 0
+    },
+    "scanned": [
+      "cryon-a",
+      "cryon-b"
+    ],
+    "target": [
+      70,
+      30,
+      420
+    ],
+    "targetId": "ferrite-a",
+    "kind": "node",
+    "scanRange": 150,
+    "scanning": false,
+    "mining": false,
+    "interact": null,
+    "fraction": 0.06476848561096599,
+    "quality": "high",
+    "equipped": {
+      "engine": 1,
+      "hull": 1,
+      "reactor": 1,
+      "scanner": 1,
+      "cargo": 1,
+      "shield": 1,
+      "miner": 1
+    },
+    "inventory": [
+      "scanner-2"
+    ],
+    "powered": true,
+    "story": null,
+    "boot": {
+      "ready": true,
+      "fraction": 1,
+      "tasks": [
+        {
+          "id": "profile",
+          "state": "done",
+          "required": true,
+          "ms": 0,
+          "attempts": 1,
+          "error": null
+        },
+        {
+          "id": "world",
+          "state": "done",
+          "required": true,
+          "ms": 1107,
+          "attempts": 1,
+          "error": null
+        },
+        {
+          "id": "systems",
+          "state": "done",
+          "required": true,
+          "ms": 123,
+          "attempts": 1,
+          "error": null
+        },
+        {
+          "id": "engines",
+          "state": "done",
+          "required": true,
+          "ms": 3318,
+          "attempts": 1,
+          "error": null
+        },
+        {
+          "id": "interface",
+          "state": "done",
+          "required": true,
+          "ms": 372,
+          "attempts": 1,
+          "error": null
+        },
+        {
+          "id": "sound",
+          "state": "done",
+          "required": false,
+          "ms": 4,
+          "attempts": 1,
+          "error": null
+        }
+      ]
+    },
+    "prologueSeen": true,
+    "tutorial": {
+      "step": null,
+      "done": true
+    }
+  },
+  "errors": [],
+  "log": [
+    "[10.6s] prologue read, main menu",
+    "[16.6s] flight started",
+    "[17.2s] mission step: locate (cargo 0 Cryon)",
+    "[18.3s] tutorial: steered -> speed",
+    "[28.5s] tutorial: approached -> scan",
+    "[28.5s] mission step: scan (cargo 0 Cryon)",
+    "[29.2s] scan cryon-a at 149 u",
+    "[31.1s] tutorial: scanned -> collect",
+    "[31.2s] mission step: collect (cargo 0 Cryon)",
+    "[39.7s] unsticking",
+    "[40.8s] collect cryon-a at 77 u",
+    "[43.5s] tutorial: collected -> fill",
+    "[43.5s] mission step: locate (cargo 3 Cryon)",
+    "[61.0s] mission step: scan (cargo 3 Cryon)",
+    "[61.8s] scan cryon-b at 149 u",
+    "[63.4s] mission step: collect (cargo 3 Cryon)",
+    "[73.1s] unsticking",
+    "[74.3s] collect cryon-b at 77 u",
+    "[76.4s] tutorial: holdReady -> return",
+    "[76.5s] mission step: return (cargo 6 Cryon)",
+    "[81.0s] unsticking",
+    "[115.9s] unsticking",
+    "[123.0s] unsticking",
+    "[123.1s] tutorial: nearDock -> dock",
+    "[124.0s] mission step: dock (cargo 6 Cryon)",
+    "[124.0s] dock at 66 u",
+    "[127.6s] tutorial: docked -> base",
+    "[127.7s] mission step: complete (cargo 0 Cryon)",
+    "[127.7s] MISSION COMPLETE panel shown",
+    "[129.5s] tutorial: baseOpened -> free",
+    "[129.6s] orbital base open, tutorial free",
+    "[132.7s] back at the pad, tutorial free",
+    "[133.3s] tutorial: launched -> done",
+    "[136.3s] launched, tutorial done"
+  ]
+}

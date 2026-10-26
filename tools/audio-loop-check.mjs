@@ -59,6 +59,46 @@ for (let k = 1; k < 10; k++) {
   const t = startInfo.startedAt + (k * LOOP - startInfo.offset) - recStart;
   if (t > 0 && t < x.length / rate) bounds.push(t);
 }
+// Where the seams really are, from the sound itself: align the recording with
+// the music file (envelope correlation over one loop, then a sample-level
+// refinement), instead of trusting timestamps across threads.
+function readWav(file) {
+  const b = fs.readFileSync(file);
+  const fileRate = b.readUInt32LE(24), n = (b.length - 44) / 2;
+  const s = new Float32Array(n);
+  for (let i = 0; i < n; i++) s[i] = b.readInt16LE(44 + i * 2) / 32767;
+  return { fileRate, s };
+}
+const wavPath = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'src', startInfo.path);
+const { fileRate, s: src } = readWav(wavPath);
+const ratio = rate / fileRate;
+const loopLen = Math.round(src.length * ratio);
+// The file at the output rate (linear interpolation is enough for alignment).
+const ref = new Float32Array(loopLen);
+for (let i = 0; i < loopLen; i++) { const p = i / ratio, j = Math.floor(p), f = p - j; ref[i] = src[j % src.length] * (1 - f) + src[(j + 1) % src.length] * f; }
+const env = (a, win) => { const out = new Float32Array(Math.floor(a.length / win)); for (let k = 0; k < out.length; k++) { let e = 0; for (let i = k * win; i < (k + 1) * win; i++) e += a[i] * a[i]; out[k] = Math.sqrt(e / win); } return out; };
+const WIN = Math.round(rate * 0.01);
+const er = env(ref, WIN), ex = env(x.subarray(0, Math.min(x.length, loopLen * 2)), WIN);
+let bestLag = 0, bestC = -Infinity;
+for (let lag = 0; lag < er.length; lag++) {
+  let c = 0;
+  for (let k = 0; k < er.length && k + lag < ex.length; k++) c += ex[k + lag] * er[k];
+  if (c > bestC) { bestC = c; bestLag = lag; }
+}
+let seam0 = bestLag * WIN, bestS = -Infinity, bestOff = seam0;
+for (let o = Math.max(0, seam0 - WIN * 2); o < seam0 + WIN * 2; o++) {
+  let c = 0;
+  for (let i = 0; i < rate * 0.5 && o + i < x.length; i += 3) c += x[o + i] * ref[i];
+  if (c > bestS) { bestS = c; bestOff = o; }
+}
+// Recorded sample where the file's first sample plays, and every loop after it.
+const measuredBounds = [];
+for (let b0 = bestOff; b0 < x.length; b0 += loopLen) if (b0 > rate * 0.02) measuredBounds.push(b0 / rate);
+// Normalised correlation of the 2 s after the first seam with the file's first 2 s (1 = same waveform).
+let sxy = 0, sxx = 0, syy = 0;
+for (let i = 0; i < Math.min(rate * 2, x.length - bestOff); i++) { const a = x[bestOff + i], c = ref[i]; sxy += a * c; sxx += a * a; syy += c * c; }
+const alignCorr = sxy / Math.sqrt(sxx * syy || 1);
+
 let sum = 0, peak = 0;
 for (const v of x) { sum += v * v; peak = Math.max(peak, Math.abs(v)); }
 const rms = Math.sqrt(sum / Math.max(1, x.length));
@@ -83,11 +123,11 @@ for (let n = 0; n < 8; n++) {
   if (best < 0) break;
   for (let j = Math.max(0, best - rate * 0.05); j < Math.min(x.length, best + rate * 0.05); j++) used[Math.floor(j)] = 1;
   const t = best / rate;
-  const nearest = bounds.reduce((m, b) => Math.min(m, Math.abs(b - t)), Infinity);
+  const nearest = measuredBounds.reduce((m, b) => Math.min(m, Math.abs(b - t)), Infinity);
   spikes.push({ at: +t.toFixed(3), d2: +bv.toFixed(5), ratioToP999: +(bv / p999).toFixed(2), nearLoopBoundaryMs: Number.isFinite(nearest) ? +(nearest * 1000).toFixed(1) : null });
 }
 // The same measure in a 20 ms window around each boundary vs. the whole recording.
-const atBounds = bounds.map(b => {
+const atBounds = measuredBounds.map(b => {
   const i0 = Math.max(1, Math.floor((b - 0.02) * rate)), i1 = Math.min(x.length - 1, Math.ceil((b + 0.02) * rate));
   let m = 0;
   for (let i = i0; i < i1; i++) m = Math.max(m, d2[i]);
@@ -96,9 +136,12 @@ const atBounds = bounds.map(b => {
 const report = {
   date: new Date().toISOString(), browser: `Chromium (Playwright, ${headless ? 'headless SwiftShader' : 'headed GPU'}, autoplay allowed)`, path: 'standalone host p0.sound (Web Audio buffer loop, as in Project 0)',
   file: startInfo.path, sampleRate: rate, recordedSeconds: +(x.length / rate).toFixed(1), loopSeconds: LOOP, loopsCovered: bounds.length,
-  level: { rms: +rms.toFixed(4), peak: +peak.toFixed(4) }, gaps, d2: { median: +median.toFixed(6), p999: +p999.toFixed(5) }, loopBoundaries: atBounds, sharpestSpikes: spikes, errors,
+  level: { rms: +rms.toFixed(4), peak: +peak.toFixed(4) }, gaps, d2: { median: +median.toFixed(6), p999: +p999.toFixed(5) },
+  seamsFrom: 'alignment of the recording with the music file (envelope + sample correlation)',
+  alignment: { firstSeamSeconds: +(bestOff / rate).toFixed(4), correlationWithFile: +alignCorr.toFixed(4), timestampEstimate: bounds.map(b => +b.toFixed(3)) },
+  loopBoundaries: atBounds, sharpestSpikes: spikes, errors,
   wallSeconds: +((Date.now() - t0) / 1000).toFixed(1),
 };
 fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, JSON.stringify(report, null, 2));
-console.log(JSON.stringify({ level: report.level, gaps: gaps.length, loopBoundaries: atBounds, sharpest: spikes.slice(0, 3), errors: errors.length }, null, 1));
+console.log(JSON.stringify({ level: report.level, gaps: gaps.length, alignment: report.alignment, loopBoundaries: atBounds, sharpest: spikes.slice(0, 3), errors: errors.length }, null, 1));

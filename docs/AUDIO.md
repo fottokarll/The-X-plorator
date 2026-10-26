@@ -34,14 +34,17 @@ Three separate causes, each verified:
   position after the slider settles, effects mute never stops the music.
 - `node tools/audio-loop-check.mjs` (needs `npm start`): plays the game's music in Chromium through
   the standalone host, whose `p0.sound` mirrors the city's shell, records the mixed Web Audio output
-  on the audio thread (AudioWorklet) for 76 s (three loops) and measures gaps and discontinuities.
-  Result on 2026-10-25 (headed Chromium, GPU): **0 gaps; at the three loop boundaries the sharpest
-  curvature is 0.53 × the recording's 99.9th percentile; the sharpest point of the whole recording
-  is the music's own content at 5.76 s into each loop (1.27 × p99.9), not a seam.** Music level in
-  the mix: RMS 0.16. Report: `docs/media/m2/audio-loop.json`.
-- An earlier run that recorded with a `ScriptProcessorNode` showed spikes in identical pairs 8192
-  samples apart: recorder buffer repeats on the main thread, not sound. The AudioWorklet recorder
-  removed them.
+  on the audio thread (AudioWorklet) for 76 s (three loops), **finds the seams in the recording by
+  aligning it with the music file** (envelope correlation, then sample-level; correlation with the
+  file at the found seam: 1.000) and measures gaps and discontinuities there.
+  Result on 2026-10-26 (headed Chromium, GPU): **0 gaps; at the three seams the sharpest curvature
+  is 0.56 × the recording's 99.9th percentile; the sharpest point of the whole recording is the
+  music's own content 5.96 s into each loop (1.26 × p99.9), exactly where the offline render has it.**
+  Music level in the mix: RMS 0.16. Report: `docs/media/m2/audio-loop.json`.
+- Two measurement mistakes were found and fixed on the way, so they are recorded here: a
+  `ScriptProcessorNode` recorder produced false spikes (buffers repeated on the main thread), and
+  estimating the seam positions from timestamps across threads was unreliable (in one run it was
+  11 s off). The AudioWorklet recorder and the alignment replace both.
 
 Not done: listening on real phones and speakers, and inside the live city (the dev kit runs the same
 shell, but its audio is in a cross-origin frame that a script cannot record). Please listen to three
