@@ -273,8 +273,8 @@ and speakers. Details: `docs/AUDIO.md`.
   about 2× resolution would replace them without code changes (`tools/comic-art.py`).
 - **Public repository**: the processed prologue panels are committed and were pushed to the public
   GitHub repository with this branch. The raw composites, the turnaround sheet and the hero image were
-  not committed (they stay in the private handoff). If you want the panels private until release, I can
-  remove them from the branch history before anything is merged.
+  not committed (they stay in the private handoff). The owner confirmed on 2026-10-26 that the panels
+  can stay public.
 - **Art rights**: the handoff describes the comic and ship images as AI-generated design studies made
   in your game conversation. Please confirm that the generator's terms allow you to use them in a
   published game; `experience.json` credits the illustrations as AI-assisted and commissioned by you.
