@@ -11,7 +11,7 @@ import { createInputHub } from '../input/input-hub.js';
 import { createCinematicCamera } from '../camera/cinematic-camera.js';
 import { createWorld } from '../render/world.js';
 import { createPipeline, detectSoftwareRenderer, QUALITY } from '../render/pipeline.js';
-import { buildShip } from '../render/ship-model.js';
+import { buildShip } from '../render/ship-builder.js';
 import { createFxLayer } from '../render/fx.js';
 import { createAudio } from './audio.js';
 import { createOverlay } from '../ui/overlay.js';
@@ -100,6 +100,8 @@ export async function createGame(p0) {
     if (resume) { retryWaiters.delete(failed.id); resume(); }
   };
   const yieldFrame = (ms = 16) => new Promise(resolve => setTimeout(resolve, ms));
+  // Ship model: the Explorer Mk2, or the M1 ship for a developer A/B check.
+  const shipModel = () => (qa.ship === 'm1' || profile.settings.shipModel === 'm1' ? 'm1' : 'mk2');
 
   const overlay = createOverlay();
   const audio = createAudio(p0);
@@ -202,7 +204,7 @@ export async function createGame(p0) {
     if (qa.failboot === 'world' && boot.get('world').attempts === 1) throw new Error('simulated failure (local test)');
     return createWorld({
       renderer, scene, quality: QUALITY[qualityName], layout,
-      baseTiles: profile.base, powered: profile.powered, vessel: profile.vessel, loadout: profile.equipped,
+      baseTiles: profile.base, powered: profile.powered, vessel: profile.vessel, loadout: profile.equipped, model: shipModel(),
     });
   }, { waitRetry, cleanup: () => { for (const c of [...scene.children]) if (!sceneBefore.has(c)) scene.remove(c); } });
   const bootWorldMs = performance.now() - bootT0;
@@ -337,7 +339,8 @@ export async function createGame(p0) {
     rightV.crossVectors(fwdV, upV.set(0, 1, 0)).normalize();
     upV.crossVectors(rightV, fwdV).normalize();
     const look = 18 + flight.speed * 1.6;
-    const shipR = world.ship.radius;
+    // Gameplay radius (the Mk2 reports the M1 ship's: identical clearances).
+    const shipR = world.ship.hitRadius ?? world.ship.radius;
     let sx = 0, sy = 0, brake = 0;
     for (const o of obstacles) {
       relV.subVectors(o.position, pos);
@@ -359,7 +362,7 @@ export async function createGame(p0) {
 
   function collide() {
     const p = v3(flight.position);
-    const shipR = world.ship.radius * 0.8;
+    const shipR = (world.ship.hitRadius ?? world.ship.radius) * 0.8;
     for (const o of obstacles) {
       const r = o.radius + shipR;
       const d2 = p.distanceToSquared(o.position);
@@ -593,11 +596,11 @@ export async function createGame(p0) {
   const hangarPad = createHangarPad();
   showroom.add(hangarPad);
   function showroomShip(key, vessel, loadout) {
-    const sig = `${vessel}:${JSON.stringify(loadout)}`;
+    const sig = `${vessel}:${JSON.stringify(loadout)}:${shipModel()}`;
     let entry = showShips.get(key);
     if (entry && entry.sig === sig) return entry;
     if (entry) { showroom.remove(entry.ship.group); entry.ship.dispose(); }
-    const ship = buildShip({ vessel, loadout });
+    const ship = buildShip({ vessel, loadout, model: shipModel() });
     showroom.add(ship.group);
     entry = { ship, sig };
     showShips.set(key, entry);
@@ -800,7 +803,7 @@ export async function createGame(p0) {
       seen.add(id);
       let r = world.remote.get(id);
       if (!r) {
-        const ship = buildShip({ vessel: 'survivor' });
+        const ship = buildShip({ vessel: 'survivor', model: shipModel() });
         ship.group.scale.setScalar(0.9);
         world.universe.add(ship.group);
         r = { object: ship.group, ship, pos: new THREE.Vector3(), yaw: 0, init: false };
@@ -1004,6 +1007,7 @@ export async function createGame(p0) {
       configureAudio();
       audio.preload();
       applyStats();
+      if (changed === 'shipModel') world.setShip(profile.vessel, profile.equipped, shipModel());
       if (!changed || changed === 'quality') {
         const next = resolveQuality(profile.settings.quality);
         if (next !== qualityName) { qualityName = next; UI_FX.shadows = next !== 'low'; pipeline.setQuality(qualityName); resize(true); }

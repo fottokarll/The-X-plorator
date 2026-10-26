@@ -332,6 +332,9 @@ export function buildShip({ vessel = 'survivor', loadout = defaultLoadout() } = 
   };
 }
 
+// Geometry helpers shared with the Explorer Mk2 (ship-mk2.js).
+export { paint, loft, plate, cylinderZ, box, mirrorX };
+
 const SHOW_X = new THREE.Vector3(), SHOW_Y = new THREE.Vector3(), SHOW_Z = new THREE.Vector3();
 const SHOW_M = new THREE.Matrix4(), SHOW_Q = new THREE.Quaternion(), SPIN_Q = new THREE.Quaternion();
 const UP_Y = new THREE.Vector3(0, 1, 0);
