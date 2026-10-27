@@ -77,6 +77,9 @@ if (status === 'started') {
   await shot('choice');
   await press('Space', 120);
   await page.waitForTimeout(6000);
+  // The opening briefing: three lines, each waits for Continue.
+  await shot('briefing');
+  for (let i = 0; i < 3; i++) { await press('Space', 120); await page.waitForTimeout(1800); }
   await shot('flight');
   for (const spec of (opt('keys', 'KeyA:1400,KeyW:700')).split(',')) {
     const [code, ms] = spec.split(':');

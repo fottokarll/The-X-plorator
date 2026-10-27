@@ -50,19 +50,34 @@ test('tutorial: first-mission steps are passed over once that mission is done (r
   assert.equal(tut.step, 'return', 'no "collect 6 Cryon" after First Light');
 });
 
-test('tutorial: radio lines change with reading time, the step only with events', () => {
-  let t = 0;
-  const lines = [];
-  const tut = createTutorial({ now: () => t, onLine: l => lines.push(l[0]) });
-  assert.equal(tut.current().speaker, 'control');
-  t = 10;
-  assert.equal(tut.current().speaker, 'pilot');
-  t = 20;
+test('tutorial: the opening briefing waits for the player, line by line; nothing moves on by itself', () => {
+  const chirps = [];
+  const tut = createTutorial({ onLine: l => chirps.push(l[0]) });
+  assert.equal(tut.briefing, true, 'a new journey opens with the briefing');
+  assert.deepEqual([tut.current().speaker, tut.current().line, tut.current().briefing], ['control', 0, true]);
+  // No clock: however long the player takes, the line stays.
+  for (let i = 0; i < 5; i++) assert.equal(tut.current().line, 0);
+  assert.equal(tut.next(), true);
+  assert.equal(tut.current().speaker, 'pilot', 'the pilot answers only after Continue');
+  tut.next();
   assert.equal(tut.current().line, 2);
-  t = 500;
-  assert.equal(tut.current().line, 2, 'the last line stays');
-  assert.equal(tut.step, 'steer');
-  assert.deepEqual(lines, ['control', 'pilot', 'control']);
+  assert.equal(tut.briefing, true, 'the last line still waits');
+  tut.next();
+  assert.equal(tut.briefing, false, 'Continue on the last line hands over the controls');
+  assert.equal(tut.next(), false);
+  assert.equal(tut.step, 'steer', 'the step itself still needs the real event');
+  assert.equal(tut.current().line, 2, 'the card keeps the last line');
+  // Later steps have no briefing: their line goes straight to the HUD card.
+  tut.handle('steered');
+  assert.equal(tut.briefing, false);
+  assert.equal(tut.current().speaker, 'control');
+  assert.deepEqual(chirps, ['control'], 'only card lines are announced by the tutorial');
+  // Skipping or resuming later never leaves a briefing open; a replay opens it again.
+  tut.skip();
+  assert.equal(tut.briefing, false);
+  tut.restart();
+  assert.equal(tut.briefing, true);
+  assert.equal(createTutorial({ state: { step: 'scan', done: false } }).briefing, false);
 });
 
 test('tutorial: saved, resumed, skipped and replayed; old saves are not forced into it', () => {

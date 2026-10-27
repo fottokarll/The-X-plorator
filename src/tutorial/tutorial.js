@@ -6,15 +6,19 @@ import { prettyKey } from '../input/keyboard.js';
  * event (the game reports them: 'steered', 'boosted', 'braked', 'approached',
  * 'scanned', 'collected', 'holdReady', 'nearDock', 'docked', 'baseOpened',
  * 'baseClosed', 'launched'). Pressing a button never advances it by itself, it
- * grants nothing and it never changes the mission. Radio lines are shown one
- * after another (reading time only); the step waits for the event.
+ * grants nothing and it never changes the mission.
+ *
+ * Radio lines never move on by themselves. The opening conversation is a
+ * briefing: the ship holds position and each line waits for the player
+ * (Continue), so nothing is missed. Later steps have one line, shown on the
+ * HUD card until the step's event.
  *
  * Saved in the profile as { step, done, flags } so it resumes after a visit;
  * skip ends it, restart replays it (steps that only make sense during the
  * first mission are passed over when that mission is already done).
  */
 export const STEPS = Object.freeze([
-  { id: 'steer', lines: [['control', 'tut.line.hello'], ['pilot', 'tut.line.ready'], ['control', 'tut.line.steer']], task: 'steer', done: e => e === 'steered' },
+  { id: 'steer', briefing: true, lines: [['control', 'tut.line.hello'], ['pilot', 'tut.line.ready'], ['control', 'tut.line.steer']], task: 'steer', done: e => e === 'steered' },
   { id: 'speed', lines: [['control', 'tut.line.speed']], task: 'speed', done: (e, f) => (e === 'boosted' || e === 'braked') && f.boosted && f.braked },
   // Mission steps can be caught up: a player who scans before trying the
   // brake finds the tutorial already at the next task, never stuck behind.
@@ -48,21 +52,25 @@ export function taskText(task, device, bindings) {
 /**
  * @param state saved { step, done, flags } (or null for a fresh start)
  * @param firstMission () => true while the First Light mission is not done
- * @param now clock in seconds (for the reading time of radio lines)
+ * @param onLine called with [speaker, id] when a step's line appears on the
+ *   HUD card (not for briefing lines: the briefing screen announces those)
  */
-export function createTutorial({ state = null, firstMission = () => true, now = () => 0, onLine = null } = {}) {
+export function createTutorial({ state = null, firstMission = () => true, onLine = null } = {}) {
   let step = state?.done ? -1 : Math.max(0, index(state?.step ?? 'steer'));
   let done = Boolean(state?.done);
   let flags = { boosted: Boolean(state?.flags?.boosted), braked: Boolean(state?.flags?.braked) };
-  let line = 0, lineAt = now();
+  // Line of the current step, and whether its briefing has been heard.
+  let line = 0, heard = true;
 
   function enter(i) {
     step = i;
     // A first-mission step makes no sense once that mission is done.
     while (step >= 0 && step < STEPS.length && STEPS[step].firstMissionOnly && !firstMission()) step++;
     if (step >= STEPS.length) { done = true; step = -1; }
-    line = 0; lineAt = now();
-    if (!done) onLine?.(STEPS[step].lines[0]);
+    line = 0;
+    heard = done || !STEPS[step].briefing;
+    // A briefing starts on its first line; a card shows the step's last line.
+    if (!done && heard) { line = STEPS[step].lines.length - 1; onLine?.(STEPS[step].lines[line]); }
   }
   if (!done) enter(step);
 
@@ -72,19 +80,21 @@ export function createTutorial({ state = null, firstMission = () => true, now = 
     get step() { return done ? null : STEPS[step]?.id ?? null; },
     get index() { return step; },
     get count() { return STEPS.length; },
-    /** The radio line to show now: lines advance by reading time; the last one stays. */
+    /** True while the step's briefing waits for the player (the ship holds). */
+    get briefing() { return api.active && !heard; },
+    /** The radio line to show now. Only the player moves a briefing on. */
     current() {
       if (!api.active) return null;
       const s = STEPS[step];
-      while (line < s.lines.length - 1) {
-        const text = tutorialText(s.lines[line][1]);
-        const readFor = Math.max(2.4, text.length * 0.055);
-        if (now() - lineAt < readFor) break;
-        line++; lineAt = now();
-        onLine?.(s.lines[line]);
-      }
       const [speaker, id] = s.lines[line];
-      return { step: s.id, speaker, text: tutorialText(id), task: s.task, line, lines: s.lines.length, number: step + 1 };
+      return { step: s.id, speaker, text: tutorialText(id), task: s.task, line, lines: s.lines.length, number: step + 1, briefing: !heard };
+    },
+    /** Continue (the player): the next briefing line, or the end of the briefing. */
+    next() {
+      if (!api.active || heard) return false;
+      if (line < STEPS[step].lines.length - 1) line++;
+      else heard = true;
+      return true;
     },
     /** A game event; returns true when it finished the current step. */
     handle(event) {
@@ -97,7 +107,7 @@ export function createTutorial({ state = null, firstMission = () => true, now = 
       }
       return false;
     },
-    skip() { done = true; step = -1; },
+    skip() { done = true; step = -1; heard = true; },
     restart() { done = false; flags = { boosted: false, braked: false }; enter(0); },
     serialize() { return { step: done ? null : STEPS[step]?.id ?? null, done, flags: { ...flags } }; },
   };

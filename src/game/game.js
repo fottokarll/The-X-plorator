@@ -18,6 +18,7 @@ import { createOverlay } from '../ui/overlay.js';
 import { createUi } from '../ui/ui.js';
 import { viewInfo, UI_FX } from '../ui/kit.js';
 import { createHud } from '../ui/hud.js';
+import { createTransmission } from '../ui/transmission.js';
 import { createPerfReport } from '../ui/perf-report.js';
 import { createStoryScreen, createTranscriptScreen } from '../ui/story-screen.js';
 import { createBootState, runTask } from '../boot/boot-state.js';
@@ -306,16 +307,19 @@ export async function createGame(p0) {
   // mission. Its state is saved with the profile so it resumes.
   let tutorial = null;
   const tutorialRun = { steer: 0, boost: 0, brake: 0 };
+  // When the HUD card's line last changed (it glows for a moment).
+  let tutorialLineAt = -10;
   function makeTutorial() {
     tutorial = createTutorial({
       state: profile.tutorial,
       firstMission: () => !['complete', 'free'].includes(profile.mission.step),
-      now: () => clock.time,
+      // A new line on the HUD card (briefing lines chirp from their own screen).
       onLine: ([speaker]) => { if (speaker === 'control' && mode !== 'story') audio.play('radio', clock.time); },
     });
   }
   function tut(event) {
     if (!tutorial?.active || !tutorial.handle(event)) return;
+    tutorialLineAt = clock.time;
     profile.tutorial = tutorial.serialize();
     p0.log?.(`[xplorator] tutorial: ${event} -> ${tutorial.step ?? 'done'}`);
     saveSoon();
@@ -936,8 +940,19 @@ export async function createGame(p0) {
       ui.show('menu');
       setHelpHud();
     },
-    /** The tutorial's card for the HUD (null when it is not running). */
-    tutorialView() { return tutorial?.active && ['flight', 'docked', 'launching', 'docking'].includes(mode) ? tutorial.current() : null; },
+    /** The tutorial's card for the HUD (null when it is not running, or during the briefing). */
+    tutorialView() {
+      if (!tutorial?.active || tutorial.briefing || !['flight', 'docked', 'launching', 'docking'].includes(mode)) return null;
+      return { ...tutorial.current(), fresh: clock.time - tutorialLineAt < 3 };
+    },
+    /** The briefing line on screen (src/ui/transmission.js), or null. */
+    briefingView() { return tutorial?.briefing ? { ...tutorial.current(), device: input.device } : null; },
+    /** Continue in the briefing: the next line, or the controls to the pilot. */
+    radioNext() {
+      if (!tutorial?.next()) return;
+      if (!tutorial.briefing) { tutorialLineAt = clock.time; p0.log?.('[xplorator] tutorial: briefing heard'); }
+    },
+    playRadio() { audio.play('radio', clock.time); },
     get tutorialActive() { return Boolean(tutorial?.active); },
     skipTutorial() {
       if (!tutorial?.active) return;
@@ -1103,7 +1118,7 @@ export async function createGame(p0) {
         equipped: { ...profile.equipped }, inventory: [...profile.inventory], powered: profile.powered,
         story: ui.has('story') ? storyScreen.debug() : null, boot: { ready: boot.ready, fraction: +boot.fraction.toFixed(3), tasks: boot.snapshot() },
         prologueSeen: profile.flags.prologueSeen,
-        tutorial: tutorial ? { step: tutorial.step, done: tutorial.done } : null,
+        tutorial: tutorial ? { step: tutorial.step, done: tutorial.done, briefing: tutorial.briefing } : null,
       };
     },
   };
@@ -1123,6 +1138,7 @@ export async function createGame(p0) {
 
   // ------------------------------------------------------------- screens
   ui.register('hud', createHud(game));
+  ui.register('radio', createTransmission(game));
   registerScreens(ui, game);
   ui.register('hangar', createHangarScreen(game));
   ui.register('map', createMapScreen(game));
@@ -1245,8 +1261,12 @@ export async function createGame(p0) {
       return;
     }
 
+    // The opening briefing: the ship holds position while Haven Control talks,
+    // and each line waits for the player (src/ui/transmission.js).
+    if (mode === 'flight' && !paused && tutorial?.briefing && ui.is('hud')) ui.push('radio');
+    else if (ui.is('radio') && !tutorial?.briefing) ui.pop();
     if (mode === 'attract') updateAttract(dt);
-    else if (mode === 'flight' && !paused) updateFlight(dt, inp);
+    else if (mode === 'flight' && !paused && !ui.has('radio')) updateFlight(dt, inp);
     else if (mode === 'docking') updateDocking(dt);
     else if (mode === 'launching') updateLaunching(dt);
     else if (mode === 'docked') { applyShipTransform(); flight.speed = 0; }

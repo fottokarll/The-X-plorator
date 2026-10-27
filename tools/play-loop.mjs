@@ -69,6 +69,24 @@ if (s.top === 'choice') { await tap('Space'); }
 await page.waitForFunction(() => window.__xpGame.debugState().mode === 'flight', null, { timeout: 20000 });
 note('flight started');
 await shot('01-launch');
+// The opening briefing (new journeys): the ship holds and every line waits for Continue.
+let briefingOk = true;
+await page.waitForTimeout(800);
+s = await state();
+if (s.tutorial?.briefing) {
+  const p0 = s.pos;
+  await page.waitForTimeout(1500);
+  const p1 = (await state()).pos;
+  const holds = Math.hypot(p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]) < 0.01;
+  note(`briefing open (top ${(await state()).top}), ship ${holds ? 'holds position' : 'MOVES'}`);
+  await shot('01b-briefing');
+  let presses = 0;
+  for (; presses < 8 && (await state()).tutorial.briefing; presses++) { await tap('Space'); await page.waitForTimeout(1700); }
+  s = await state();
+  note(`briefing ${s.tutorial.briefing ? 'STILL OPEN' : 'heard'} after ${presses} presses, top ${s.top}, step ${s.tutorial.step}`);
+  briefingOk = holds && !s.tutorial.briefing && s.top === 'hud';
+  if (!briefingOk) note('FAIL: briefing');
+}
 
 const milestones = new Set();
 let lastStep = '';
@@ -154,6 +172,7 @@ if (ok && args.includes('--hangar')) {
   await shot('08-hangar-upgraded');
   if (after.equipped.engine !== 2) { ok = false; note('FAIL: Ion Drive II not equipped'); }
 }
+if (!briefingOk) ok = false;
 const final = await state();
 fs.writeFileSync(path.join(out, 'playtest.json'), JSON.stringify({ ok, final, errors, log }, null, 2));
 note(`${ok ? 'PASS' : 'FAIL'} · bank ${final.bank.cryon} Cryon / ${final.bank.ferrite} Ferrite · errors ${errors.length}`);

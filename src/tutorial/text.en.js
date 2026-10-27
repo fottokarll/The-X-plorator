@@ -8,6 +8,10 @@ export default Object.freeze({
   'tut.name.control': 'MIRA · HAVEN CONTROL',
   'tut.name.pilot': 'YOU',
   'tut.skip': 'Skip tutorial',
+  'tut.radio.incoming': 'Incoming transmission',
+  'tut.radio.reply': 'Your reply',
+  'tut.radio.next': 'Continue',
+  'tut.radio.fly': 'Take the controls',
 
   'tut.line.hello': "Explorer, this is Haven Control. Your crew is safe. Let's get you moving.",
   'tut.line.ready': 'Copy, Haven. Ready to fly.',

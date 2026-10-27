@@ -51,7 +51,7 @@ export function createHud(game) {
     const { u } = view;
     const t = m.tutorial;
     const phone = view.phone;
-    const r = (phone ? 19 : 24) * u;
+    const r = (phone ? 21 : 27) * u;
     const textSize = (phone ? 12.5 : 13.5) * u;
     const textX = at.x + r * 2 + 22 * u, textW = at.w - (textX - at.x) - 12 * u;
     setFont(ctx, textSize, 400);
@@ -62,7 +62,8 @@ export function createHud(game) {
     }
     lines = Math.min(view.landscapePhone ? 2 : 3, lines + 1);
     const h = 30 * u + lines * textSize * 1.35 + 26 * u;
-    panel(ctx, at.x, at.y, at.w, h, { r: 12 * u, fill: 'rgba(6,16,42,0.82)', stroke: 'rgba(112,226,244,0.42)', highlight: false });
+    // A new line glows for a moment, so it is noticed.
+    panel(ctx, at.x, at.y, at.w, h, { r: 12 * u, fill: 'rgba(6,16,42,0.86)', stroke: t.fresh ? COLORS.cyan : 'rgba(112,226,244,0.42)', glow: t.fresh ? 16 * u : 0, highlight: false });
     const who = t.speaker === 'pilot' ? m.pilot : 'control';
     portrait(ctx, who, at.x + 12 * u + r, at.y + 12 * u + r, r, t.speaker === 'pilot' ? COLORS.gold : COLORS.cyan);
     text(ctx, tutorialText(t.speaker === 'pilot' ? 'tut.name.pilot' : 'tut.name.control'), textX, at.y + 17 * u, { size: 9.5 * u, weight: 700, color: t.speaker === 'pilot' ? COLORS.gold : COLORS.cyan, tracking: 1.6 * u, maxWidth: textW - 90 * u });
@@ -92,7 +93,7 @@ export function createHud(game) {
       return [m.cargo.cryon, m.cargo.ferrite, m.cargo.capacity, m.bank.cryon, m.bank.ferrite, m.objective.text, m.objective.detail,
         Math.round(m.objective.distance / 10), m.prompt?.text, Math.round(m.speed), m.mode, m.device, m.touch, m.toasts.map(t => t.id).join(','),
         m.scanCard?.id, m.interact, m.canScan, Math.round((m.scan?.progress ?? 0) * 10), Math.round((m.mining?.progress ?? 0) * 10), m.warning,
-        game.input.bindings.boost[0], m.docked, m.tutorial?.step, m.tutorial?.line, m.pilot].join('~');
+        game.input.bindings.boost[0], m.docked, m.tutorial?.step, m.tutorial?.line, m.tutorial?.fresh, m.pilot].join('~');
     },
     draw(ctx, view, reg, state) {
       const m = game.hudModel();

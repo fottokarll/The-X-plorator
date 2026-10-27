@@ -119,6 +119,9 @@ await check('gamepad', async notes => {
   const choice = (await g.state()).top;
   await g.pad([0, 0], 0); // A: Continue free
   await g.page.waitForTimeout(6000);
+  // The opening briefing: A moves it on, line by line (the ship holds meanwhile).
+  const briefing = (await g.state()).tutorial.briefing;
+  for (let i = 0; i < 8 && (await g.state()).tutorial.briefing; i++) { await g.pad([0, 0], 0); await g.page.waitForTimeout(1700); }
   const s0 = await g.state();
   // Left stick: steer, held until the game has counted 1 s of steering (game
   // time runs slower than the wall clock when frames are slow) or 5 s pass.
@@ -128,9 +131,9 @@ await check('gamepad', async notes => {
   await g.page.waitForTimeout(400);
   const s1 = await g.state();
   await g.shot('gamepad-flight');
-  notes.push(`menu ${menu}, select ${select}, check ${choice}, mode ${s0.mode}`, `yaw ${s0.yaw.toFixed(2)} -> ${s1.yaw.toFixed(2)}`, `tutorial ${s0.tutorial.step} -> ${s1.tutorial.step}`, `errors ${g.errors.length}`);
+  notes.push(`menu ${menu}, select ${select}, check ${choice}, mode ${s0.mode}, briefing ${briefing ? 'shown, heard with A' : 'NOT SHOWN'}`, `yaw ${s0.yaw.toFixed(2)} -> ${s1.yaw.toFixed(2)}`, `tutorial ${s0.tutorial.step} -> ${s1.tutorial.step}`, `errors ${g.errors.length}`);
   await g.context.close();
-  return menu === 'menu' && select === 'select' && choice === 'choice' && s0.mode === 'flight' && Math.abs(s1.yaw - s0.yaw) > 0.2 && s1.tutorial.step === 'speed' && !g.errors.length;
+  return menu === 'menu' && select === 'select' && choice === 'choice' && s0.mode === 'flight' && briefing && !s0.tutorial.briefing && Math.abs(s1.yaw - s0.yaw) > 0.2 && s1.tutorial.step === 'speed' && !g.errors.length;
 });
 
 await check('oldsave', async notes => {
