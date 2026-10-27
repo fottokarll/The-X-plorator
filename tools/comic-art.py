@@ -14,6 +14,10 @@ word shown in the game comes from src/story/strings.en.js:
     (boundary diffusion from the surrounding art, plus a mirrored texture);
   - speech balloons keep their drawn shape (outline and tail) but their
     interior is cleared to the balloon white; the game writes the words in.
+Each balloon also gets its tail tip (found here) and its free room: a
+rectangle of plain background around it, measured by eye on the panels, with
+no people in it. A line that does not fit the drawn balloon gets a larger
+balloon of the game's own, only ever inside that room.
 Coordinates were measured on the composites (gutter probes, see
 docs/EXODUS_PROLOGUE.md). Re-run after replacing the art:
 
@@ -29,31 +33,33 @@ from PIL import Image, ImageFilter
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 QUALITY = 80
 
-# Art polygons (art edges, inside the white gutters) and seeds, in composite pixels.
+# Art polygons (art edges, inside the white gutters) and seeds, in composite pixels;
+# balloon rooms [x, y, w, h] and tail tips (where the detection below picks a
+# corner; None: no tail) in panel pixels (the panel crop's own coordinates).
 WIDE = {
     'file': 'exodus_comic_desktop_approved.png',
     'page': [24, 54, 1648, 898],
     'panels': [
-        {'poly': [[24, 54], [849, 54], [799, 296], [24, 281]], 'plate': [36, 74], 'balloon': [236, 190]},
-        {'poly': [[865, 54], [1648, 54], [1648, 282], [815, 296]], 'plate': [878, 76], 'balloon': [1066, 172]},
-        {'poly': [[24, 294], [847, 311], [882, 510], [24, 486]], 'plate': [36, 318], 'balloon': [165, 372]},
+        {'poly': [[24, 54], [849, 54], [799, 296], [24, 281]], 'plate': [36, 74], 'balloon': [236, 190], 'room': [198, 36, 332, 124]},
+        {'poly': [[865, 54], [1648, 54], [1648, 282], [815, 296]], 'plate': [878, 76], 'balloon': [1066, 172], 'room': [175, 38, 197, 104]},
+        {'poly': [[24, 294], [847, 311], [882, 510], [24, 486]], 'plate': [36, 318], 'balloon': [165, 372], 'room': [128, 28, 200, 86]},
         {'poly': [[863, 310], [1648, 296], [1648, 536], [897, 511]], 'plate': [890, 326], 'balloon': None},
-        {'poly': [[24, 500], [767, 521], [713, 722], [24, 701]], 'plate': [36, 521], 'balloon': [334, 590]},
+        {'poly': [[24, 500], [767, 521], [713, 722], [24, 701]], 'plate': [36, 521], 'balloon': [334, 590], 'room': [296, 18, 140, 98], 'tail': [365, 121]},
         {'poly': [[783, 520], [1648, 549], [1648, 712], [730, 722]], 'plate': [804, 543], 'balloon': None},
-        {'poly': [[24, 715], [725, 737], [1648, 724], [1648, 898], [24, 898]], 'plate': [36, 746], 'balloon': [1352, 812]},
+        {'poly': [[24, 715], [725, 737], [1648, 724], [1648, 898], [24, 898]], 'plate': [36, 746], 'balloon': [1352, 812], 'room': [1200, 30, 290, 145]},
     ],
 }
 TALL = {
     'file': 'exodus_comic_phone_approved.png',
     'page': [24, 48, 926, 1608],
     'panels': [
-        {'poly': [[24, 48], [926, 48], [926, 255], [470, 291], [24, 272]], 'plate': [30, 72], 'balloon': [210, 170]},
-        {'poly': [[24, 286], [470, 304], [926, 269], [926, 508], [470, 515], [24, 495]], 'plate': [30, 314], 'balloon': [262, 420]},
-        {'poly': [[24, 508], [470, 529], [926, 523], [926, 742], [24, 688]], 'plate': [30, 540], 'balloon': [175, 600]},
+        {'poly': [[24, 48], [926, 48], [926, 255], [470, 291], [24, 272]], 'plate': [30, 72], 'balloon': [210, 170], 'room': [172, 38, 340, 112]},
+        {'poly': [[24, 286], [470, 304], [926, 269], [926, 508], [470, 515], [24, 495]], 'plate': [30, 314], 'balloon': [262, 420], 'room': [228, 40, 327, 132]},
+        {'poly': [[24, 508], [470, 529], [926, 523], [926, 742], [24, 688]], 'plate': [30, 540], 'balloon': [175, 600], 'room': [140, 20, 190, 100]},
         {'poly': [[24, 701], [926, 756], [926, 985], [24, 921]], 'plate': [30, 728], 'balloon': None},
-        {'poly': [[24, 936], [926, 999], [926, 1150], [470, 1181], [24, 1153]], 'plate': [30, 963], 'balloon': [352, 1040]},
+        {'poly': [[24, 936], [926, 999], [926, 1150], [470, 1181], [24, 1153]], 'plate': [30, 963], 'balloon': [352, 1040], 'room': [312, 28, 175, 92], 'tail': [394, 137]},
         {'poly': [[24, 1166], [470, 1195], [926, 1164], [926, 1379], [24, 1339]], 'plate': [30, 1196], 'balloon': None},
-        {'poly': [[24, 1352], [926, 1392], [926, 1608], [24, 1608]], 'plate': [30, 1383], 'balloon': [748, 1440]},
+        {'poly': [[24, 1352], [926, 1392], [926, 1608], [24, 1608]], 'plate': [30, 1383], 'balloon': [748, 1440], 'room': [600, 28, 295, 112], 'tail': None},
     ],
 }
 
@@ -214,12 +220,18 @@ def process(spec, refs, out_dir, tag):
             ty = [q[1] for q in text]
             rx = [q[0] for q in region]
             ry = [q[1] for q in region]
+            # The tail tip: the balloon pixel farthest from the middle of its words.
+            mx, my = (min(tx) + max(tx)) / 2, (min(ty) + max(ty)) / 2
+            tip = max(region, key=lambda q: (q[0] - mx) ** 2 + ((q[1] - my) * 1.6) ** 2)
             balloon = {
                 # Where the baked words were (the game writes its text here)...
                 'text': [min(tx) - box[0] - 6, min(ty) - box[1] - 5, max(tx) - min(tx) + 12, max(ty) - min(ty) + 10],
                 # ...and the whole cleared balloon, tail included.
                 'shape': [min(rx) - box[0], min(ry) - box[1], max(rx) - min(rx) + 1, max(ry) - min(ry) + 1],
                 'fill': '#%02x%02x%02x' % white,
+                'tail': p['tail'] if 'tail' in p else [tip[0] - box[0], tip[1] - box[1]],
+                # Free background around it: the only place a bigger balloon may go.
+                'room': p['room'],
             }
         # 2. Caption plate (after the balloon, so no word can be copied into its fill): cream component + its text holes + the dark border.
         sx, sy = find_seed(spx, W, H, p['plate'][0], p['plate'][1], is_cream)
@@ -273,7 +285,8 @@ def main():
         ' * approved composites (edit the tool and re-run it, not this file).\n'
         ' * Per art set: page size, and per panel its WebP file and byte size, its\n'
         ' * pixel size, its offset on the page, its outline polygon (local pixels),\n'
-        ' * the cleared balloon (where the game writes the words, the shape, the fill)\n'
+        ' * the cleared balloon (where the game writes the words, the shape, the fill,\n'
+        ' * the tail tip and the free room a bigger balloon may use: no people there)\n'
         ' * and where the removed caption plate was. The words are in strings.en.js.\n'
         ' */\n'
     )

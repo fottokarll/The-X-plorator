@@ -44,9 +44,16 @@ drawn into the interface canvas: no WebGL texture is created for the comic.
 
 `src/story/strings.en.js` holds every string by stable id (`story.3.bubble`, `story.ui.begin`, ...),
 plus an image description per panel. A translation is another table with the same ids
-(`setStrings()`). Fitting: caption plates grow with their text; spoken lines are fitted into the
-drawn balloon (balanced lines, 12.5-22 px), and if they do not fit (a longer language), the game draws
-a larger balloon of its own over it.
+(`setStrings()`). Fitting: caption plates grow with their text. A spoken line is written into the
+drawn balloon when it fits there at a readable size (desktop page: the comic's own lettering size,
+at least 11.5 px; phone frames 13-20 px). When it does not (a small page, a longer language, a plate
+over the balloon), the game draws a balloon of its own over the drawn one, **only inside that
+balloon's free room**: a rectangle of plain background around it, measured on each panel with no
+people in it, below the caption plate. The text then gets smaller (down to 10-11 px) rather than the
+balloon growing onto anyone. The new balloon's tail ends on the drawn tail's tip, so it still points
+at the speaker. (Owner playtest: *"in some images text in the bubble covered people"*: at 1920 and
+1280 px the old enlarged balloons covered faces in panels 1, 2, 3 and 5; checked again at eight
+screen sizes.)
 
 **Accessibility.** The current panel's text goes to `p0.hud` (the city's own HTML text, readable by
 screen readers; it is folded away with `"ui": "minimized"` but can be opened). TRANSCRIPT opens all
@@ -70,7 +77,9 @@ not.
    the black outer frame by brightness profile) and are the polygons in the tool.
 2. **Balloons**: the white interior is flood-filled from a seed, the enclosed words are found as the
    holes of that region, and the whole interior is cleared to the balloon's white. The drawn balloon
-   shape, outline and tail stay; `art-layout.js` records where the words were and the balloon's box.
+   shape, outline and tail stay; `art-layout.js` records where the words were, the balloon's box, its
+   tail tip (the balloon pixel farthest from the words, set by hand for three balloons) and its free
+   room (measured by eye on the panels, listed in the tool).
 3. **Caption plates** (cream boxes): found the same way and **painted out** (diffusion from the
    surrounding art blended with a softened mirror of the scene to the right). The result is a soft
    patch where the plate was; the game always draws its own plate over that corner, so the patch is

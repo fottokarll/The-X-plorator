@@ -185,68 +185,142 @@ export function createStoryScreen({ p0, boot, isReducedMotion = () => false, onB
     return total;
   }
 
-  function captionPlate(ctx, str, x, y, { size, minW = 0, minH = 0 }) {
-    const label = str.toUpperCase();
-    const tw = measure(ctx, label, size, 800, size * 0.12);
-    const w = Math.max(minW, tw + size * 1.3), h = Math.max(minH, size * 2.0);
+  /** Where a caption plate goes (it grows with its text). */
+  function plateRect(ctx, str, x, y, { size, minW = 0, minH = 0 }) {
+    const tw = measure(ctx, str.toUpperCase(), size, 800, size * 0.12);
+    return { x, y, w: Math.max(minW, tw + size * 1.3), h: Math.max(minH, size * 2.0) };
+  }
+  function captionPlate(ctx, str, rect, size) {
+    const { x, y, w, h } = rect;
     ctx.save();
     ctx.fillStyle = PLATE;
     ctx.fillRect(x, y, w, h);
     ctx.strokeStyle = PLATE_EDGE; ctx.lineWidth = Math.max(1.5, size * 0.14);
     ctx.strokeRect(x, y, w, h);
     ctx.restore();
-    text(ctx, label, x + size * 0.65, y + h / 2 + 0.5, { size, weight: 800, color: INK, tracking: size * 0.12 });
-    return { w, h };
+    text(ctx, str.toUpperCase(), x + size * 0.65, y + h / 2 + 0.5, { size, weight: 800, color: INK, tracking: size * 0.12 });
   }
 
-  /** Writes the bubble text into the cleared balloon (screen rect), or draws a bigger balloon over it. */
-  function balloonText(ctx, str, box, shape, { minSize, maxSize, clip = null }) {
-    if (!str) return;
-    const pad = 4;
-    // Room for words: the drawn balloon's body (an ellipse holds a rectangle
-    // of about 72 % x 62 % of its box), centred where the original words were.
-    if (shape.w > box.w) {
-      const cx = box.x + box.w / 2, cy = box.y + box.h / 2;
-      const bw = Math.max(box.w, shape.w * 0.72), bh = Math.max(box.h, shape.h * 0.5);
-      box = { x: cx - bw / 2, y: cy - bh / 2, w: bw, h: bh };
-    }
-    let size = maxSize, lines = null;
-    for (; size >= minSize; size -= 0.5) {
-      lines = wrapBalanced(ctx, str, box.w - pad * 2, size, 600);
-      const longest = Math.max(...lines.map(l => (setFont(ctx, size, 600), ctx.measureText(l).width)));
-      if (lines.length * size * 1.18 <= box.h && longest <= box.w - pad) break;
-    }
-    if (size < minSize) {
-      // Does not fit the drawn balloon: an own balloon over it, sized to the words.
-      size = minSize;
-      lines = wrapBalanced(ctx, str, Math.max(box.w * 1.6, minSize * 9), size, 600);
-      const longest = Math.max(...lines.map(l => (setFont(ctx, size, 600), ctx.measureText(l).width)));
-      const bw = Math.max(shape.w, longest + size * 2.2), bh = Math.max(shape.h, lines.length * size * 1.25 + size * 1.4);
-      let cx = shape.x + shape.w / 2, cy = shape.y + shape.h / 2;
-      if (clip) {
-        cx = Math.max(clip.x + bw / 2 + 4, Math.min(clip.x + clip.w - bw / 2 - 4, cx));
-        cy = Math.max(clip.y + bh / 2 + 4, Math.min(clip.y + clip.h - bh / 2 - 4, cy));
-      }
-      ctx.save();
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, bw / 2, bh / 2, 0, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff'; ctx.fill();
-      ctx.strokeStyle = INK; ctx.lineWidth = 2; ctx.stroke();
-      ctx.restore();
-      box = { x: cx - bw / 2, y: cy - bh / 2, w: bw, h: bh };
-    }
+  function balancedLines(ctx, str, maxW, size) {
+    const lines = wrapBalanced(ctx, str, maxW, size, 600);
+    setFont(ctx, size, 600);
+    return { lines, width: Math.max(...lines.map(l => ctx.measureText(l).width)) };
+  }
+  function writeLines(ctx, lines, cx, cy, size) {
     setFont(ctx, size, 600);
     ctx.save();
     ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const lh = size * 1.18, y0 = box.y + box.h / 2 - (lines.length - 1) * lh / 2;
-    lines.forEach((l, i) => ctx.fillText(l, box.x + box.w / 2, y0 + i * lh));
+    const lh = size * 1.18, y0 = cy - (lines.length - 1) * lh / 2;
+    lines.forEach((l, i) => ctx.fillText(l, cx, y0 + i * lh));
     ctx.restore();
   }
 
-  /** An own speech balloon inside a frame (the drawn one is out of view). */
+  /**
+   * A panel's spoken line (all rects in screen px). Written into the drawn
+   * balloon when it fits there at a readable size. Otherwise a balloon of the
+   * game's own covers the drawn one, growing only inside the balloon's free
+   * room (background measured with no people in it), below the caption plate
+   * and inside the visible art, with its tail on the drawn tail's tip.
+   * Returns the text size used, or 0 when there was no room for it.
+   */
+  function speech(ctx, str, { box, shape, tail = null, room = null, clip, plate = null }, { min, max, floor }) {
+    if (!str) return 0;
+    const inter = (a, b2) => {
+      const x = Math.max(a.x, b2.x), y = Math.max(a.y, b2.y);
+      const w = Math.min(a.x + a.w, b2.x + b2.w) - x, h = Math.min(a.y + a.h, b2.y + b2.h) - y;
+      return w > 0 && h > 0 ? { x, y, w, h } : null;
+    };
+    // The drawn balloon without its tail.
+    let body = { ...shape };
+    if (tail) {
+      if (tail.y >= shape.y + shape.h * 0.8) body.h = shape.h * 0.84;
+      else if (tail.y <= shape.y + shape.h * 0.2) { body.y += shape.h * 0.16; body.h = shape.h * 0.84; }
+      else if (tail.x <= shape.x + shape.w * 0.1) { body.x += shape.w * 0.07; body.w = shape.w * 0.93; }
+      else if (tail.x >= shape.x + shape.w * 0.9) body.w = shape.w * 0.93;
+    }
+    const whole = body.x >= clip.x - 1 && body.y >= clip.y - 1 && body.x + body.w <= clip.x + clip.w + 1 && body.y + body.h <= clip.y + clip.h + 1;
+    const underPlate = plate && plate.x < body.x + body.w && plate.x + plate.w > body.x && plate.y + plate.h > body.y;
+    if (whole && !underPlate) {
+      // Room for words in the drawn balloon: about 74 % x 60 % of its body,
+      // centred where the original words were.
+      const cx = box.x + box.w / 2, cy = box.y + box.h / 2;
+      const bw = Math.max(box.w, body.w * 0.74), bh = Math.max(box.h, body.h * 0.6);
+      for (let size = max; size >= min; size -= 0.5) {
+        const { lines, width } = balancedLines(ctx, str, bw - 8, size);
+        if (lines.length * size * 1.18 <= bh && width <= bw - 4) { writeLines(ctx, lines, cx, cy, size); return size; }
+      }
+    }
+    // A balloon of our own, inside the free room.
+    let free = room ? inter(room, clip) : null;
+    if (free && plate && plate.x < free.x + free.w && plate.x + plate.w > free.x && plate.y + plate.h + 3 > free.y) {
+      const top = plate.y + plate.h + 3;
+      free = free.y + free.h - top > 0 ? { ...free, h: free.y + free.h - top, y: top } : null;
+    }
+    let cover = inter(body, clip);
+    if (cover && free) cover = inter(cover, { x: cover.x, y: free.y, w: cover.w, h: cover.h + cover.y });
+    if (cover) cover = { x: cover.x - 3, y: cover.y - 3, w: cover.w + 6, h: cover.h + 6 };
+    const area = free && cover ? {
+      x: Math.min(free.x, cover.x), y: Math.min(free.y, cover.y),
+      w: Math.max(free.x + free.w, cover.x + cover.w) - Math.min(free.x, cover.x),
+      h: Math.max(free.y + free.h, cover.y + cover.h) - Math.min(free.y, cover.y),
+    } : free ?? cover;
+    if (!area) return 0;
+    // First as large as the drawn balloon's footprint allows, then smaller
+    // sizes in a balloon grown into the room. Lines stay short (about 8 em).
+    const measureAt = size => {
+      const padX = size * 0.95, padY = size * 0.6;
+      const { lines, width } = balancedLines(ctx, str, Math.min(area.w - padX * 2, size * 8.5), size);
+      return { lines, size, pw: Math.max(cover?.w ?? 0, width + padX * 2), ph: Math.max(cover?.h ?? 0, lines.length * size * 1.18 + padY * 2) };
+    };
+    let fit = null;
+    if (cover) {
+      for (let size = max; size >= min && !fit; size -= 0.5) {
+        const m = measureAt(size);
+        if (m.pw <= cover.w + 0.5 && m.ph <= cover.h + 0.5) fit = m;
+      }
+    }
+    for (let size = min; size >= floor && !fit; size -= 0.5) {
+      const m = measureAt(size);
+      if (m.pw <= area.w + 0.5 && m.ph <= area.h + 0.5) fit = m;
+    }
+    if (!fit && !cover) return 0;
+    fit ??= measureAt(floor);
+    const { lines, pw, ph, size } = fit;
+    const mid = cover ?? area;
+    const x0 = Math.max(area.x, Math.min(area.x + area.w - pw, mid.x + mid.w / 2 - pw / 2));
+    const y0 = Math.max(area.y, Math.min(area.y + area.h - ph, mid.y + mid.h / 2 - ph / 2));
+    const pill = () => { ctx.beginPath(); roundRect(ctx, x0, y0, pw, ph, Math.min(ph * 0.45, pw / 2)); };
+    // Tail: from where the drawn tail leaves the drawn body to its tip, wide
+    // enough to cover the drawn one (both meet at the same point).
+    let tailPath = null;
+    const inPill = tail && tail.x > x0 && tail.x < x0 + pw && tail.y > y0 && tail.y < y0 + ph;
+    if (tail && !inPill && inter({ x: tail.x - 1, y: tail.y - 1, w: 2, h: 2 }, clip)) {
+      const bx = Math.max(body.x + 2, Math.min(body.x + body.w - 2, tail.x));
+      const by = Math.max(body.y + 2, Math.min(body.y + body.h - 2, tail.y));
+      const dx = tail.x - bx, dy = tail.y - by, len = Math.hypot(dx, dy) || 1;
+      const hw = Math.max(size * 0.45, body.h * 0.15);
+      const nx = -dy / len * hw, ny = dx / len * hw;
+      tailPath = () => { ctx.beginPath(); ctx.moveTo(bx + nx, by + ny); ctx.lineTo(tail.x, tail.y); ctx.lineTo(bx - nx, by - ny); ctx.closePath(); };
+    }
+    // One outline around balloon and tail: wide strokes first, fills over them.
+    const lw = Math.max(1.5, Math.min(3, size * 0.13));
+    ctx.save();
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = INK; ctx.lineWidth = lw * 2;
+    if (tailPath) { tailPath(); ctx.stroke(); }
+    pill(); ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    if (tailPath) { tailPath(); ctx.fill(); }
+    pill(); ctx.fill();
+    ctx.restore();
+    writeLines(ctx, lines, x0 + pw / 2, y0 + ph / 2, size);
+    return size;
+  }
+
+  /** An own speech balloon inside a frame (the drawn one and its room are out of view). */
   function ownBalloon(ctx, str, frame, side, size, below = 0) {
     if (!str) return;
-    const lines = wrap(ctx, str, Math.min(frame.w * 0.5, size * 11), size, 600);
+    const lines = wrapBalanced(ctx, str, Math.min(frame.w * 0.5, size * 11), size, 600);
     setFont(ctx, size, 600);
     const longest = Math.max(...lines.map(l => ctx.measureText(l).width));
     const bw = longest + size * 2.2, bh = lines.length * size * 1.22 + size * 1.3;
@@ -260,7 +334,7 @@ export function createStoryScreen({ p0, boot, isReducedMotion = () => false, onB
     ctx.fillStyle = '#ffffff'; ctx.fill();
     ctx.strokeStyle = INK; ctx.lineWidth = 2; ctx.stroke();
     ctx.restore();
-    balloonText(ctx, str, { x: cx - bw / 2 + size * 0.6, y: cy - bh / 2 + 2, w: bw - size * 1.2, h: bh - 4 }, { x: cx - bw / 2, y: cy - bh / 2, w: bw, h: bh }, { minSize: size, maxSize: size });
+    writeLines(ctx, lines, cx, cy, size);
   }
 
   function missingArt(ctx, reg, state, beat, rect, entry, u) {
@@ -394,14 +468,25 @@ export function createStoryScreen({ p0, boot, isReducedMotion = () => false, onB
       }
       ctx.restore();
       if (i <= story.index && entry?.state === 'ready') {
+        const size = Math.max(12 * u, Math.min(20 * u, a.plate[3] * s * 0.5));
+        const plate = plateRect(ctx, t(beat.caption), px + Math.max(0, a.plate[0]) * s, py + a.plate[1] * s, { size, minW: (a.plate[0] + a.plate[2]) * s, minH: a.plate[3] * s + 2 });
         if (a.balloon && t(beat.bubble)) {
           const b = a.balloon;
-          balloonText(ctx, t(beat.bubble), { x: px + b.text[0] * s, y: py + b.text[1] * s, w: b.text[2] * s, h: b.text[3] * s },
-            { x: px + b.shape[0] * s, y: py + b.shape[1] * s, w: b.shape[2] * s, h: b.shape[3] * s }, { minSize: 12.5 * u, maxSize: 22 * u });
+          const r = q => q && { x: px + q[0] * s, y: py + q[1] * s, w: q[2] * s, h: q[3] * s };
+          // The approved page's own lettering size (about 15.5 px on the composite), never below 11.5 px.
+          const letter = 15.5 * s;
+          const min = Math.max(11.5, letter), max = Math.max(min, Math.min(18 * u, letter * 1.3));
+          ctx.save();
+          polyPath(ctx, a.poly, px, py, s);
+          ctx.clip();
+          speech(ctx, t(beat.bubble), {
+            box: r(b.text), shape: r(b.shape), room: r(b.room), tail: b.tail && { x: px + b.tail[0] * s, y: py + b.tail[1] * s },
+            clip: { x: px, y: py, w: a.width * s, h: a.height * s }, plate,
+          }, { min, max, floor: 10 });
+          ctx.restore();
         }
         // The caption plate last: nothing may cover the panel's title.
-        const size = Math.max(12 * u, Math.min(20 * u, a.plate[3] * s * 0.5));
-        captionPlate(ctx, t(beat.caption), px + Math.max(0, a.plate[0]) * s, py + a.plate[1] * s, { size, minW: (a.plate[0] + a.plate[2]) * s, minH: a.plate[3] * s + 2 });
+        captionPlate(ctx, t(beat.caption), plate, size);
       }
     });
     // Narration and controls.
@@ -478,29 +563,30 @@ export function createStoryScreen({ p0, boot, isReducedMotion = () => false, onB
     const plateMinW = Math.min(inner.w - 6, Math.max(0, plateRight - inner.x));
     const plateH = Math.max(size * 2, Math.max(0, plateBottom - inner.y));
     const bubble = t(beat.bubble);
+    const plate = plateRect(ctx, t(beat.caption), inner.x + 3, inner.y + 3, { size, minW: plateMinW, minH: plateH });
     if (a.balloon && bubble) {
       const b = a.balloon;
-      const [sx0, sy0] = toScreen(b.shape[0], b.shape[1]);
-      const [sx1, sy1] = toScreen(b.shape[0] + b.shape[2], b.shape[1] + b.shape[3]);
-      const visible = sx0 >= inner.x && sx1 <= inner.x + inner.w;
-      const partly = sx1 > inner.x && sx0 < inner.x + inner.w;
-      if (visible) {
-        const [tx0, ty0] = toScreen(b.text[0], b.text[1]);
-        balloonText(ctx, bubble, { x: tx0, y: ty0, w: b.text[2] * win.sc, h: b.text[3] * win.sc }, { x: sx0, y: sy0, w: sx1 - sx0, h: sy1 - sy0 },
-          { minSize: 13 * u, maxSize: 20 * u, clip: inner });
-      } else if (partly) {
-        // Cut by the frame edge: a whole balloon of the game's own, kept in the
-        // frame and covering the visible part of the drawn one.
-        const vx0 = Math.max(sx0, inner.x), vx1 = Math.min(sx1, inner.x + inner.w);
-        const cut = { x: vx0, y: sy0, w: vx1 - vx0, h: sy1 - sy0 };
-        balloonText(ctx, bubble, { x: cut.x + cut.w / 2, y: cut.y + cut.h / 2, w: 0, h: 0 }, cut, { minSize: 13 * u, maxSize: 13 * u - 0.01, clip: inner });
-      } else {
+      const r = q => {
+        if (!q) return null;
+        const [x0, y0] = toScreen(q[0], q[1]);
+        return { x: x0, y: y0, w: q[2] * win.sc, h: q[3] * win.sc };
+      };
+      const tip = b.tail && toScreen(b.tail[0], b.tail[1]);
+      ctx.save();
+      ctx.beginPath(); ctx.rect(inner.x, inner.y, inner.w, inner.h); ctx.clip();
+      const used = speech(ctx, bubble, {
+        box: r(b.text), shape: r(b.shape), room: r(b.room), tail: tip && { x: tip[0], y: tip[1] }, clip: inner, plate,
+      }, { min: 13 * u, max: 20 * u, floor: 11 });
+      ctx.restore();
+      // Drawn balloon and its room both out of view (beat 7 keeps the hero ship).
+      if (!used) {
+        const [sx0] = toScreen(b.shape[0], b.shape[1]);
         ownBalloon(ctx, bubble, inner, sx0 < inner.x ? 'left' : 'right', 13 * u, plateH + 3);
       }
     }
     ctx.save();
     ctx.beginPath(); ctx.rect(inner.x, inner.y, inner.w, inner.h); ctx.clip();
-    captionPlate(ctx, t(beat.caption), inner.x + 3, inner.y + 3, { size, minW: plateMinW, minH: plateH });
+    captionPlate(ctx, t(beat.caption), plate, size);
     ctx.restore();
     return inner;
   }
