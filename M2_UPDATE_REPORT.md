@@ -18,6 +18,14 @@ Then, in this order:
 5. If you like it: run the free server validation with your key, then approve a publish
    (docs/P0_PUBLISH_CHECKLIST.md). I will not publish without your explicit go-ahead.
 
+### Owner playtest, round 1 (26 Oct 2026): three notes, three fixes
+
+| Your note | What was wrong | Fix | How it was checked |
+|---|---|---|---|
+| *"In some images text in the bubble covered people"* | When a line did not fit the drawn balloon at the game's minimum size, the game drew a bigger oval centred on it. On the desktop page at 1920 and 1280 px that oval covered faces in panels 1, 2, 3 and 5 (panel 3's was also cut by the caption). | Each balloon now has a **free room**: plain background measured on the panel, no people in it. A bigger balloon may only grow there, below the caption plate; the text gets smaller before the balloon grows onto anyone. Its tail ends on the drawn tail's tip. The page keeps the comic's own lettering size where it fits. | All 7 panels captured at 1920 × 1080, 1366 × 768, 1280 × 720, 1024 × 768, 768 × 1024, 390 × 844, 360 × 800 and 844 × 390: no balloon over a face. |
+| *"At the beginning it is too fast, I didn't even notice it and it disappeared, and I was answering back"* | Haven's first lines changed by a reading timer (about 4 s), in a small card at the side, while the ship was already flying: you saw your own reply without having read Mira. | No tutorial line moves on by itself any more. The first flight opens with an **Incoming transmission** briefing at the bottom of the screen; the **ship holds position**; each line types in and waits for **Continue** (Space / E, controller A, tap or click). The last button is *Take the controls*. *Skip tutorial* is a small corner link. Later lines stay on the HUD card until their task is done, with the radio chirp and a short glow. | Unit test; keyboard playthrough (ship position unchanged while the briefing is open); controller check with A; phone portrait and landscape with taps. |
+| *"On the image should be a character similar to those from our comic"* | Mira and the pilot portraits were flat, simple shapes. | Redrawn in code in the **prologue's style**: ink outlines, large eyes with highlights, flat colour with one shade, the fleet's white-and-orange uniforms. Mira is modelled on the hangar engineer of panel 4 (bun, round glasses, crew jacket with an orange patch) and has a headset. The woman, man and visor pilot options use the same style. | Rendered at every size used (HUD card, briefing, phones). |
+
 ---
 
 ## 1. Baseline, branch and commits
@@ -96,8 +104,8 @@ Touched files (beyond `docs/` and `docs/media/`):
   the panel.
 - **Every word is real text** (`src/story/strings.en.js`, stable ids, image descriptions included):
   the baked captions were painted out of the art and the balloon words cleared, so nothing is
-  duplicated. Text fits the drawn balloons, or the game draws its own balloon when a translation (or a
-  narrow frame) needs it.
+  duplicated. Text fits the drawn balloons; when it does not, the game's own balloon grows only into
+  the balloon's measured free room, never over people (owner playtest fix, above).
 - **Real loading**: `experience.json` `"loading": { "own": true }` (Project 0 then runs the frame loop
   while `start()` works), so the prologue is the loading screen from the first frames. Boot tasks with
   honest progress; *PREPARING YOUR JOURNEY* only on the last panel while the game is not ready; *BEGIN
@@ -117,9 +125,10 @@ Touched files (beyond `docs/` and `docs/media/`):
   `standalone/ship-viewer.html`.
 
 **Gate D: first-flight tutorial** (`docs/TUTORIAL.md`)
-- Mira of Haven Control (an original character, drawn in code) talks the pilot through steer → boost
-  and brake → beacon → scan → collect → fill the hold → return → dock → orbital base → free
-  exploration. Each step ends only on its real game event; nothing is granted; skip, resume, replay;
+- Mira of Haven Control (an original character, drawn in code in the prologue's comic style) opens the
+  first flight with a briefing that waits for the player while the ship holds, then talks the pilot
+  through steer → boost and brake → beacon → scan → collect → fill the hold → return → dock → orbital
+  base → free exploration. Each step ends only on its real game event; nothing is granted; skip, resume, replay;
   device-adaptive tasks using the player's own keys; a soft radio chirp. M1 saves are not forced into it.
 
 ## 3. How to run
@@ -143,9 +152,9 @@ All runs on this Linux PC (4 cores, Intel HD Graphics 6000, Chromium 1248 via Pl
 | Test | Result |
 |---|---|
 | `npm test` | **61 tests, 61 pass, 0 fail** (36 from M1 + 25 new: audio 7, story/boot 7, ship 4, tutorial 7) |
-| `npm run playtest -- --hangar` 1920 × 1080, real keyboard only | **PASS**, 0 errors: prologue read with the keys → menu → vessel → free check → scan, mine × 2 → return → dock → mission complete → craft + equip Ion Drive II |
-| `npm run playtest -- --tutorial` 1280 × 720 | **PASS**, 0 errors: every tutorial step advanced on its own event, ended at the next launch |
-| `node tools/m2-checks.mjs` | **6/6 PASS**: rotation keeps panel 3 (single → cinema); BEGIN never reached the menu before ready under 6× CPU throttling and was still waiting 10 s after ready; controller through prologue, menu, vessel, free check and steering; an M1-format signed-in save loaded, continued and kept bank 6/2, engine Lv 2, mission *free*, music muted, with the tutorial off; hangar at Low/Medium/High; every desktop HUD button (boost, scan, base, hangar, map, hangar, pause, resume). The controller check was made robust to slow frames after two runs lost a short simulated press (Project 0 gives controllers as polled state only; M1 behaves the same). |
+| `npm run playtest -- --hangar` 1920 × 1080, real keyboard only | **PASS**, 0 errors: prologue read with the keys → menu → vessel → free check → opening briefing (ship held position, 3 × Continue) → scan, mine × 2 → return → dock → mission complete → craft + equip Ion Drive II (re-run after the playtest fixes) |
+| `npm run playtest -- --tutorial` 1280 × 720 | **PASS**, 0 errors: the briefing opened with the ship holding position and closed after 3 Continue presses; every tutorial step advanced on its own event, ended at the next launch (re-run after the playtest fixes) |
+| `node tools/m2-checks.mjs` | **6/6 PASS**: rotation keeps panel 3 (single → cinema); BEGIN never reached the menu before ready under 6× CPU throttling and was still waiting 10 s after ready; controller through prologue, menu, vessel, free check, the briefing (A) and steering; an M1-format signed-in save loaded, continued and kept bank 6/2, engine Lv 2, mission *free*, music muted, with the tutorial off; hangar at Low/Medium/High; every desktop HUD button (boost, scan, base, hangar, map, hangar, pause, resume). The controller check was made robust to slow frames after two runs lost a short simulated press (Project 0 gives controllers as polled state only; M1 behaves the same); after the playtest fixes its first run lost one simulated press in the main menu again and passed on the second run (`checks/report.json` notes both). |
 | Fresh guest (`?guest=1`) | 1 save attempt per session, one toast, play continues |
 | Slow network | Fast 3G emulation, phone: prologue first, game ready later (section 6) |
 | Load failure / retry | `?failboot=world&artfail=2`: boot error with RETRY, then the world step ran a second time and the game became ready; panel 2 *Illustration not loaded* → LOAD AGAIN → loaded |
@@ -155,7 +164,8 @@ All runs on this Linux PC (4 cores, Intel HD Graphics 6000, Chromium 1248 via Pl
 | Official dev kit, desktop + `devkit.review(14)` | started in 4.9 s (49 files, 493 KB), **review 59.6 fps, worst frame 27.6 ms, 0 slow frames, 0 errors, 0 violations** |
 | Official dev kit, phone + review | started in 3.3 s, **review 59.2 fps, worst 27.6 ms, 0 errors, 0 violations** |
 | Dev kit on a software renderer (headless SwiftShader, like the review) | started; review restart in 10.1 s, **6.1 fps, 0 errors, 0 violations** (M1 baseline the same night: 9.1 s, 6.3 fps). First cold start 22.6 s (M1: 21.6 s). Before the fix in `d7a99b0` M2 needed 27 s and the review did not start within 25 s. |
-| `npm run package` | local checks **OK**: 71 files, 439.8 KB JS, zip 2,213.8 KB |
+| Official dev kit after the playtest fixes (27 Oct, PC heavily loaded: load average 14-16 on 4 cores from other apps) | 0 errors; the briefing ran in the real sandbox (3 × Space). Cold start 38.0 / 38.9 s, **the same as the last commit before the fixes measured in between (41.2 / 40.5 s)**; shader warm-up 24.2 vs 24.3 s. The review restart did not start within the dev kit's 25 s limit for either build at that load (the earlier build once made it in 22.8 s). The unloaded results above stand; please re-run `npm run devkit -- --review` on an idle PC. With the briefing open the game ran at 31.9 fps, while typing 37.2, then 21.6 in flight (same load, same session): no cost from the panel. |
+| `npm run package` | local checks **OK**: 72 files, 462.1 KB JS, zip 2,221.2 KB (after the playtest fixes; before: 71 files, 439.8 KB, 2,213.8 KB) |
 | Server validation (`p0:validate`) | **not run**: needs your key |
 | Browser console | 0 errors in every run above. Logged by design: `[xplorator]` diagnostics; one-off "slow frame" lines at the start of a journey (about 0.5 s while the ship, station and nodes are rebuilt; M1 rebuilt the same) and during the software-renderer warm-up. |
 
@@ -171,15 +181,15 @@ All in `docs/media/m2/`, captured by `tools/capture-m2.sh`, `tools/m2-checks.mjs
 | | Files |
 |---|---|
 | Before (M1 baseline) | `before/desktop-1920-{menu,select,flight,hangar,base}.jpg`, `before/phone-portrait-{menu,select,flight}.jpg`, `before/phone-landscape-{select,flight}.jpg` |
-| After, desktop 1920 × 1080 | `after/desktop-1920-{prologue-booting,prologue-panel4,prologue-begin,menu,select,free-check,flight-tutorial,flight-turn,hangar,base,pause,settings}.jpg` |
+| After, desktop 1920 × 1080 | `after/desktop-1920-{prologue-booting,prologue-panel4,prologue-begin,menu,select,free-check,briefing,briefing-reply,flight-tutorial,flight-turn,hangar,base,pause,settings}.jpg` |
 | After, 1280 × 720 with the performance report | `after/desktop-1280-{prologue,select,flight-perf}.jpg` |
-| After, phone portrait 390 × 844 | `after/phone-portrait-{prologue-1,prologue-3,prologue-7,menu,select,free-check,flight-tutorial,hangar}.jpg` |
+| After, phone portrait 390 × 844 | `after/phone-portrait-{prologue-1,prologue-3,prologue-7,menu,select,free-check,briefing,flight-tutorial,hangar}.jpg` |
 | After, small phone 360 × 800 | `after/phone-360-{prologue,menu,select,flight}.jpg` |
-| After, phone landscape 844 × 390 | `after/phone-landscape-{prologue-1,prologue-3,menu,select,flight-tutorial}.jpg` |
+| After, phone landscape 844 × 390 | `after/phone-landscape-{prologue-1,prologue-3,menu,select,briefing,flight-tutorial}.jpg` |
 | Ship Mk2, real renders | `ship/mk2-{front,rear,left,right,top,bottom,34front,34rear,flight}.jpg`, Lv 3 loadout `-lv3`, sheet-grey `-grey`, M1 next to Mk2 `ship/both-{34front,top,rear}.jpg` |
 | Exposure Low / Medium / High (hangar) | `checks/exposure-hangar-{low,medium,high}.jpg` |
 | Checks | `checks/{rotation-portrait,rotation-landscape,ready-preparing,ready-begin,gamepad-flight,oldsave-first-visit,buttons-pause}.jpg` |
-| Full loop and tutorial | `playtest/*.jpg` (launch, scan, mine, return, dock, complete, hangar, upgraded), `playtest-tutorial/09-tutorial-last-line.jpg` |
+| Full loop and tutorial | `playtest/*.jpg` (launch, briefing, scan, mine, return, dock, complete, hangar, upgraded), `playtest-tutorial/{01b-briefing,09-tutorial-last-line}.jpg` |
 | Dev kit | `devkit/desktop-*.jpg`, `devkit/phone-*.jpg`, `devkit/software-*.jpg` (prologue, menu, select, free check, flight) + reports |
 
 Best before/after pairs for the video: `before/desktop-1920-select.jpg` ↔ `after/desktop-1920-select.jpg`,
@@ -295,6 +305,12 @@ and speakers. Details: `docs/AUDIO.md`.
   journey starts.
 - **Pilot identity**: an optional portrait in Settings (visor, woman, man), shown on the pilot's radio
   line; no picker at New Journey, no avatars to buy.
+- **Portraits are drawn in code**, in the prologue's style (outlines, eyes, uniforms), not painted
+  like the comic. Painted portraits that match the comic exactly would need an image generator with
+  the comic as reference: a small paid job that sends your art to that service, so it is not done
+  without your go-ahead (the game would then load them as two small images).
+- **Balloon rooms** are measured by hand on these panels; replacement art needs its rooms measured
+  again (listed in `tools/comic-art.py`).
 
 ## 10. Publication status
 

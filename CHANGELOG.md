@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.1-m2 — 2026-10-26 (owner playtest fixes, same branch, not published)
+
+### Fixed
+- **Prologue balloons covered people** (panels 1, 2, 3 and 5 on the desktop page): a line that does
+  not fit the drawn balloon now gets a balloon of the game's own only inside that balloon's measured
+  free room (no people there, below the caption plate), with its tail on the drawn tail's tip; the
+  text gets smaller before the balloon grows. Checked at eight screen sizes.
+- **The opening radio lines went by too fast** ("I didn't even notice it and it disappeared"): no
+  tutorial line moves on by itself any more. The first flight opens with an *Incoming transmission*
+  briefing: the ship holds, each line types in and waits for Continue (Space / E, A, tap); Skip is a
+  small corner link. New lines on the HUD card glow for a moment.
+
+### Changed
+- Mira and the pilot portraits are redrawn in the prologue's comic style (ink outlines, large eyes,
+  white-and-orange crew uniforms); Mira is modelled on the hangar engineer of panel 4.
+
 ## 0.3.0-m2 — 2026-10-26 (branch `dev/m2-exodus-comic-ship`, release candidate, not published)
 
 Full report: [M2_UPDATE_REPORT.md](M2_UPDATE_REPORT.md).
