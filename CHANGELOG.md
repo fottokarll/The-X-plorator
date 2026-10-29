@@ -1,6 +1,11 @@
 # Changelog
 
-## 0.3.1-m2 — 2026-10-26 (owner playtest fixes, same branch, not published)
+## 0.3.1-m2 — 2026-10-26 (owner playtest fixes; live on lot #323 since 2026-10-29)
+
+### Published
+- Lot #323 runs M2 with the owner's approval (29 Oct 2026): experience `eb537c7b15a1fbb5` from `0a649d5`
+  (submission 13114, `200 live`, server validation 0 errors and 0 warnings), tag `m2-live-lot323`. The
+  street build was unchanged and was not republished. Lot #696 untouched.
 
 ### Fixed
 - **Prologue balloons covered people** (panels 1, 2, 3 and 5 on the desktop page): a line that does

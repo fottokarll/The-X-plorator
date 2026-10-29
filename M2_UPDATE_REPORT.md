@@ -1,7 +1,9 @@
 # M2 update report: THE X-PLORATOR v1.1 polish + v1.2 Exodus prologue, new ship and tutorial
 
-**Release candidate on branch `dev/m2-exodus-comic-ship`. Nothing was published.** Lot #323 still
-runs the M1 build; lot #696 was not touched; no ATT was spent; no Project 0 key was used or stored.
+**Live on lot #323 since 29 Oct 2026**, published with the owner's approval: experience
+`eb537c7b15a1fbb5` from `0a649d5` (submission 13114, server validation 0 errors and 0 warnings), tag
+`m2-live-lot323`. The street build was unchanged and not republished; lot #696 was not touched; no ATT
+was spent; the key stays outside the repository.
 
 **Test this first:** run `npm start`, open **http://127.0.0.1:5500/?fresh=1** on your PC with sound
 on, read the prologue to *BEGIN THE EXODUS*, then start a New Journey and follow Mira through the
@@ -37,7 +39,8 @@ validated UI fixes that were never published.
 
 | Tag (pushed) | Commit | What |
 |---|---|---|
-| `m1-live-lot323` | `f337a9f` | the build live on lot #323 (experience `2ad35ac72d7916ec`) |
+| `m2-live-lot323` | `0a649d5` | M2, live on lot #323 since 29 Oct 2026 (experience `eb537c7b15a1fbb5`) |
+| `m1-live-lot323` | `f337a9f` | M1, live on lot #323 24-29 Oct 2026 (experience `2ad35ac72d7916ec`) |
 | `m1-baseline` | `0c23a19` | M2 starting point (M1 + the two unpublished UI fixes) |
 
 Branch **`dev/m2-exodus-comic-ship`** (from `0c23a19`), commits oldest first:
