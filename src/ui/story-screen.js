@@ -175,7 +175,7 @@ export function createStoryScreen({ p0, boot, isReducedMotion = () => false, onB
 
   // ----------------------------------------------------------- drawing parts
   function drawTitle(ctx, x, y, size, align = 'center', u = 1) {
-    const parts = [['THE ', COLORS.text], ['X', ORANGE], ['-PLORATOR', COLORS.text], [':  ', COLORS.text], [t('story.subtitle'), LILAC]];
+    const parts = [['The-', COLORS.text], ['X', ORANGE], ['-plorator', COLORS.text], [':  ', COLORS.text], [t('story.subtitle'), LILAC]];
     const tracking = size * 0.16;
     const widths = parts.map(([s2]) => measure(ctx, s2, size, 800, tracking) + tracking);
     const total = widths.reduce((a, b) => a + b, 0) - tracking;
@@ -557,7 +557,10 @@ export function createStoryScreen({ p0, boot, isReducedMotion = () => false, onB
     // Caption plate in the frame's corner: it also covers the place where the
     // drawn plate was painted out of the art whenever that place is in view.
     // Measured first, drawn last (nothing may cover the title).
-    const size = Math.max(13 * u, Math.min(17 * u, inner.h * 0.075));
+    let size = Math.max(13 * u, Math.min(17 * u, inner.h * 0.075));
+    // A long caption shrinks to fit the frame (the plate's width is linear in its size).
+    const fit = (inner.w - 6) / plateRect(ctx, t(beat.caption), 0, 0, { size }).w;
+    if (fit < 1) size *= fit;
     const [, plateBottom] = toScreen(0, a.plate[1] + a.plate[3]);
     const [plateRight] = toScreen(a.plate[0] + a.plate[2], 0);
     const plateMinW = Math.min(inner.w - 6, Math.max(0, plateRight - inner.x));

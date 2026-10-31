@@ -54,7 +54,7 @@ function readSave() {
 }
 
 const p0 = {
-  lot: { id: 323, width: 16, depth: 16, height: 30, size: 16, name: 'The X-plorator (standalone)' },
+  lot: { id: 323, width: 16, depth: 16, height: 30, size: 16, name: 'The-X-plorator (standalone)' },
   scene: new THREE.Scene(),
   camera: new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.3, 90000),
   get renderer() { return (renderer ??= makeRenderer()); },

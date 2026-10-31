@@ -401,8 +401,8 @@ export function vignette(ctx, w, h, strength = 0.55) {
 }
 
 export function title(ctx, x, y, size, { align = 'left', u = 1, glow = true } = {}) {
-  // "THE X-PLORATOR" with the X emphasised in ion cyan.
-  const parts = [['THE ', COLORS.text], ['X', COLORS.cyan], ['-PLORATOR', COLORS.text]];
+  // "The-X-plorator" with the X emphasised in ion cyan.
+  const parts = [['The-', COLORS.text], ['X', COLORS.cyan], ['-plorator', COLORS.text]];
   const tracking = size * 0.22;
   setFont(ctx, size, 300);
   const widths = parts.map(([s]) => measure(ctx, s, size, 300, tracking) + tracking);

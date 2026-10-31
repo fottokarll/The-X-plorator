@@ -6,7 +6,7 @@
  * Fiction: no real people, companies or logos.
  */
 export default Object.freeze({
-  'story.title': 'THE X-PLORATOR',
+  'story.title': 'The-X-plorator',
   'story.subtitle': 'PRELUDE',
   'story.tagline': 'A new home awaits',
 
@@ -40,7 +40,7 @@ export default Object.freeze({
   'story.6.narration': 'Small crews and limited supplies. Every journey mattered.',
   'story.6.alt': 'White and orange ships with blue engines gather at an orbital station above Earth.',
 
-  'story.7.caption': 'The X-plorator begins here.',
+  'story.7.caption': 'The-X-plorator begins here.',
   'story.7.bubble': 'See you among the stars.',
   'story.7.narration': 'Explore. Discover. Build humanity a new home.',
   'story.7.alt': 'A white and orange twin-engine explorer leads smaller ships toward a vast blue-violet galaxy.',
