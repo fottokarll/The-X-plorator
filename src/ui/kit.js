@@ -35,7 +35,11 @@ export function viewInfo(w, h) {
     : Math.max(0.78, Math.min(1.6, Math.min(w / 1280, h / 720)));
   // Project 0 draws its toolbar across the top centre: keep ~58 px clear there,
   // and its round fullscreen button in the top-left corner (~48 px square).
-  return { w, h, u, portrait, phone, landscapePhone: phone && !portrait, pad: Math.round(16 * u), p0Top: 58, p0Corner: 48 };
+  // A worker cannot read the device's safe-area insets (no CSS env()), so
+  // landscape phones keep a fixed side margin for notches and rounded corners,
+  // and phones a small bottom margin for the home indicator.
+  const landscapePhone = phone && !portrait;
+  return { w, h, u, portrait, phone, landscapePhone, pad: Math.round(16 * u), p0Top: 58, p0Corner: 48, safeX: landscapePhone ? 30 : 0, safeBottom: phone ? 10 : 0 };
 }
 
 export function setFont(ctx, size, weight = 400) {
@@ -45,6 +49,17 @@ export function setFont(ctx, size, weight = 400) {
 /** Text with manual letter spacing (consistent across browsers). Returns width. */
 export function text(ctx, str, x, y, { size = 14, weight = 400, color = COLORS.text, align = 'left', tracking = 0, baseline = 'middle', alpha = 1, maxWidth = 0, shadow = false } = {}) {
   str = String(str);
+  // A line that does not fit gives up letter spacing first, then up to 18 % of
+  // its size, and only then is cut with an ellipsis.
+  if (maxWidth && tracking) {
+    const chars = [...str];
+    setFont(ctx, size, weight);
+    const base = ctx.measureText(str).width;
+    if (base + tracking * (chars.length - 1) > maxWidth) {
+      tracking = Math.max(0, (maxWidth - base) / Math.max(1, chars.length - 1));
+      if (base > maxWidth) { size = Math.max(size * 0.82, size * maxWidth / base); tracking = 0; }
+    }
+  }
   setFont(ctx, size, weight);
   ctx.textBaseline = baseline;
   ctx.fillStyle = color;
@@ -79,17 +94,23 @@ export function measure(ctx, str, size, weight = 400, tracking = 0) {
   return ctx.measureText(String(str)).width + tracking * Math.max(0, chars.length - 1);
 }
 
-/** Word-wrapped paragraph; returns the height used. */
-export function paragraph(ctx, str, x, y, maxWidth, { size = 14, lineHeight = 1.45, color = COLORS.dim, align = 'left', weight = 400 } = {}) {
+/** Word-wrapped paragraph (optionally at most `maxLines`, the last cut with an ellipsis); returns the height used. */
+export function paragraph(ctx, str, x, y, maxWidth, { size = 14, lineHeight = 1.45, color = COLORS.dim, align = 'left', weight = 400, maxLines = 0 } = {}) {
   setFont(ctx, size, weight);
   const words = String(str).split(/\s+/);
-  const lines = [];
+  let lines = [];
   let line = '';
   for (const w of words) {
     const test = line ? `${line} ${w}` : w;
     if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = w; } else line = test;
   }
   if (line) lines.push(line);
+  if (maxLines && lines.length > maxLines) {
+    lines = lines.slice(0, maxLines);
+    let last = lines[maxLines - 1];
+    while (last.length > 1 && ctx.measureText(`${last}…`).width > maxWidth) last = last.slice(0, -1);
+    lines[maxLines - 1] = `${last.trimEnd()}…`;
+  }
   ctx.fillStyle = color;
   ctx.textAlign = align;
   ctx.textBaseline = 'top';
@@ -216,6 +237,7 @@ const ICONS = {
   plus: ctx => { stroke(ctx, 'M12 5v14M5 12h14'); },
   minus: ctx => { stroke(ctx, 'M5 12h14'); },
   reset: ctx => { stroke(ctx, 'M5 12a7 7 0 117 7'); stroke(ctx, 'M5 7v5h5'); },
+  book: ctx => { stroke(ctx, 'M12 6.5c-2.2-1.6-5-2-8-1.5v13c3-.5 5.8-.1 8 1.5 2.2-1.6 5-2 8-1.5V5c-3-.5-5.8-.1-8 1.5z'); stroke(ctx, 'M12 6.5v13'); },
 };
 
 // ------------------------------------------------------------- hit registry
@@ -228,7 +250,7 @@ export function createRegistry() {
   return {
     reset() { items = []; },
     add(id, x, y, w, h, opts = {}) {
-      const item = { id, x, y, w, h, enabled: opts.enabled !== false, focusable: opts.focusable !== false, data: opts.data, hold: Boolean(opts.hold) };
+      const item = { id, x, y, w, h, enabled: opts.enabled !== false, focusable: opts.focusable !== false, data: opts.data, hold: Boolean(opts.hold), drag: Boolean(opts.drag) };
       items.push(item);
       return item;
     },
@@ -289,16 +311,61 @@ export function button(ctx, reg, id, x, y, w, h, label, { state = {}, primary = 
   const color = primary && enabled ? '#061433' : enabled ? (danger ? COLORS.danger : COLORS.text) : COLORS.faint;
   const size = (small ? 12 : 14) * u;
   let tx = align === 'left' ? x + h * 0.55 : x + w / 2;
+  // The label is centred in the room beside the icon and fitted to it.
+  let room = w - h * 1.0;
   if (ic) {
     const isz = h * 0.46;
-    if (align === 'left') { icon(ctx, ic, x + h * 0.55, y + h / 2, isz, primary && enabled ? '#061433' : COLORS.cyan); tx = x + h * 1.05; }
-    else icon(ctx, ic, x + h * 0.6, y + h / 2, isz, primary && enabled ? '#061433' : COLORS.cyan);
+    if (align === 'left') { icon(ctx, ic, x + h * 0.55, y + h / 2, isz, primary && enabled ? '#061433' : COLORS.cyan); tx = x + h * 1.05; room = w - h * 1.6; }
+    else {
+      icon(ctx, ic, x + h * 0.6, y + h / 2, isz, primary && enabled ? '#061433' : COLORS.cyan);
+      const natural = measure(ctx, label.toUpperCase(), size, primary ? 600 : 500, 2.2 * u);
+      const left = x + h * 1.0, right = x + w - h * 0.45;
+      room = right - left;
+      if (natural > w - h * 2.2) tx = (left + right) / 2;
+    }
   }
-  text(ctx, label.toUpperCase(), tx, y + h / 2 + 0.5, { size, weight: primary ? 600 : 500, color, align: align === 'left' ? 'left' : 'center', tracking: 2.2 * u });
+  text(ctx, label.toUpperCase(), tx, y + h / 2 + 0.5, { size, weight: primary ? 600 : 500, color, align: align === 'left' ? 'left' : 'center', tracking: 2.2 * u, maxWidth: Math.max(20, room) });
   if (hint) text(ctx, hint, x + w - h * 0.5, y + h / 2, { size: 11 * u, color: primary ? 'rgba(6,20,51,0.75)' : COLORS.faint, align: 'right' });
   else if (!primary && align === 'left' && enabled) icon(ctx, 'next', x + w - h * 0.55, y + h / 2, h * 0.36, 'rgba(112,226,244,0.75)');
   ctx.restore();
   return reg.add(id, x, y, w, h, { enabled });
+}
+
+/**
+ * Volume-style slider (0..1) in a pill; the registry item carries the track's
+ * x and width in `data` so a tap or drag can set the value directly.
+ * `muted` draws the value struck through (the level is kept for un-muting).
+ */
+export function slider(ctx, reg, id, x, y, w, h, value, { state = {}, u = 1, enabled = true, muted = false } = {}) {
+  const focused = state.focus === id, hovered = state.hover === id;
+  ctx.save();
+  if ((focused || hovered) && UI_FX.shadows) { ctx.shadowColor = 'rgba(112,226,244,0.45)'; ctx.shadowBlur = 12 * u; }
+  roundRect(ctx, x, y, w, h, h / 2);
+  ctx.fillStyle = focused || hovered ? 'rgba(24,52,104,0.82)' : 'rgba(9,22,56,0.66)';
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = focused ? COLORS.cyan : hovered ? 'rgba(112,226,244,0.7)' : COLORS.line;
+  ctx.lineWidth = focused ? 1.6 : 1;
+  ctx.stroke();
+  const label = muted ? 'OFF' : `${Math.round(value * 100)}%`;
+  const valueW = 46 * u;
+  const tx = x + h * 0.55, tw = Math.max(20, w - h * 0.55 - valueW - 8 * u), ty = y + h / 2;
+  roundRect(ctx, tx, ty - 2 * u, tw, 4 * u, 2 * u);
+  ctx.fillStyle = 'rgba(120,150,200,0.28)';
+  ctx.fill();
+  const v = Math.max(0, Math.min(1, value));
+  if (v > 0) {
+    roundRect(ctx, tx, ty - 2 * u, tw * v, 4 * u, 2 * u);
+    ctx.fillStyle = muted ? 'rgba(160,180,210,0.45)' : COLORS.cyan;
+    ctx.fill();
+  }
+  ctx.beginPath();
+  ctx.arc(tx + tw * v, ty, h * 0.24, 0, Math.PI * 2);
+  ctx.fillStyle = muted ? '#8fa2bf' : COLORS.text;
+  ctx.fill();
+  ctx.restore();
+  text(ctx, label, x + w - h * 0.45, ty, { size: 12 * u, weight: 500, color: muted ? COLORS.faint : COLORS.text, align: 'right' });
+  return reg.add(id, x, y, w, h, { enabled, data: { x: tx, w: tw }, drag: true });
 }
 
 /** IMG 07 round icon button with label below (and optional key hint). */
@@ -334,8 +401,8 @@ export function vignette(ctx, w, h, strength = 0.55) {
 }
 
 export function title(ctx, x, y, size, { align = 'left', u = 1, glow = true } = {}) {
-  // "THE X-PLORATOR" with the X emphasised in ion cyan.
-  const parts = [['THE ', COLORS.text], ['X', COLORS.cyan], ['-PLORATOR', COLORS.text]];
+  // "The-X-plorator" with the X emphasised in ion cyan.
+  const parts = [['The-', COLORS.text], ['X', COLORS.cyan], ['-plorator', COLORS.text]];
   const tracking = size * 0.22;
   setFont(ctx, size, 300);
   const widths = parts.map(([s]) => measure(ctx, s, size, 300, tracking) + tracking);

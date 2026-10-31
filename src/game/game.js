@@ -11,13 +11,18 @@ import { createInputHub } from '../input/input-hub.js';
 import { createCinematicCamera } from '../camera/cinematic-camera.js';
 import { createWorld } from '../render/world.js';
 import { createPipeline, detectSoftwareRenderer, QUALITY } from '../render/pipeline.js';
-import { buildShip } from '../render/ship-model.js';
+import { buildShip } from '../render/ship-builder.js';
 import { createFxLayer } from '../render/fx.js';
 import { createAudio } from './audio.js';
 import { createOverlay } from '../ui/overlay.js';
 import { createUi } from '../ui/ui.js';
 import { viewInfo, UI_FX } from '../ui/kit.js';
 import { createHud } from '../ui/hud.js';
+import { createTransmission } from '../ui/transmission.js';
+import { createPerfReport } from '../ui/perf-report.js';
+import { createStoryScreen, createTranscriptScreen } from '../ui/story-screen.js';
+import { createBootState, runTask } from '../boot/boot-state.js';
+import { createTutorial } from '../tutorial/tutorial.js';
 import { registerScreens } from '../ui/screens.js';
 import { createHangarScreen } from '../ui/hangar.js';
 import { createMapScreen } from '../ui/galaxy-map.js';
@@ -71,35 +76,45 @@ export async function createGame(p0) {
   }
   let qualityName = resolveQuality(profile.settings.quality);
 
-  // ------------------------------------------------------------- world
-  loading(0.12, 'painting the nebula');
+  // ------------------------------------------------------------- boot + prologue
+  // The interface comes first. With "loading": { "own": true } in
+  // experience.json, Project 0 runs the frame loop from the moment this code
+  // arrives (sandbox runtime.js, read 2026-10-25), so the reader is already in
+  // the Exodus prologue while the world is built below. Every boot step is a
+  // real task in `boot`; BEGIN appears only when all required ones are done.
   const bootT0 = performance.now();
-  const layout = buildSectorLayout();
-  const world = createWorld({
-    renderer, scene, quality: QUALITY[qualityName], layout,
-    baseTiles: profile.base, powered: profile.powered, vessel: profile.vessel, loadout: profile.equipped,
-  });
-  const bootWorldMs = performance.now() - bootT0;
-  for (const [id, n] of Object.entries(profile.nodes)) world.field.setNodeAmount(id, n.amount);
-  // Software renderers (e.g. Project 0's review): drop the costliest large
-  // translucent layers; the composition still reads as the same scene.
-  if (soft.software) {
-    world.planet.group.children.forEach(c => { if (c.name === 'PlanetRing' || c.name === 'PlanetAtmosphere') c.visible = false; });
-  }
-  const fx = createFxLayer();
-  world.universe.add(fx.group);
-  loading(0.5, 'assembling Haven Outpost');
+  const clock = { time: 0 };
+  const qa = p0.qa ?? {}; // local test switches (standalone page only)
+  const boot = createBootState();
+  boot.add('profile', { label: 'reading the ship log', weight: 0.2 })
+    .add('world', { label: 'painting the nebula', weight: 4 })
+    .add('systems', { label: 'assembling Haven Outpost', weight: 1 })
+    .add('engines', { label: 'warming the engines', weight: 4 })
+    .add('interface', { label: 'preparing the interface', weight: 1 })
+    .add('sound', { label: 'tuning the radio', weight: 0.3, required: false });
+  boot.start('profile');
+  boot.done('profile');
+  const retryWaiters = new Map();
+  const waitRetry = id => new Promise(resolve => retryWaiters.set(id, resolve));
+  const retryBoot = () => {
+    const failed = boot.failed;
+    const resume = failed && retryWaiters.get(failed.id);
+    if (resume) { retryWaiters.delete(failed.id); resume(); }
+  };
+  const yieldFrame = (ms = 16) => new Promise(resolve => setTimeout(resolve, ms));
+  // Ship model: the Explorer Mk2, or the M1 ship for a developer A/B check.
+  const shipModel = () => (qa.ship === 'm1' || profile.settings.shipModel === 'm1' ? 'm1' : 'mk2');
 
   const overlay = createOverlay();
-  const pipeline = createPipeline({ renderer, scene, camera, overlay });
-  pipeline.setQuality(qualityName);
-  if (soft.software) pipeline.setSoftwareScale(0.72);
-  const camRig = createCinematicCamera(camera);
   const audio = createAudio(p0);
+  const configureAudio = () => {
+    const s = profile.settings;
+    audio.configure({ sound: s.sound, musicEnabled: s.music, sfx: s.sfxVolume, musicLevel: s.musicVolume });
+  };
   const ui = createUi({
     overlay,
-    onActivate: () => audio.play('ui', game.time),
-    onScreen: id => p0.log?.(`[xplorator] screen ${id} at ${game.time.toFixed(1)} s`),
+    onActivate: () => audio.play('ui', clock.time),
+    onScreen: id => p0.log?.(`[xplorator] screen ${id} at ${clock.time.toFixed(1)} s`),
   });
 
   const input = createInputHub({
@@ -112,10 +127,108 @@ export async function createGame(p0) {
   input.setOptions({ invert: profile.settings.invertY, sens: profile.settings.sensitivity });
   if (viewInfo(viewport().w, viewport().h).phone) input.device = 'touch';
 
+  const storyScreen = createStoryScreen({
+    p0, boot,
+    isReducedMotion: () => profile.settings.reducedMotion,
+    onBegin: () => game.finishPrologue(),
+    onLeave: () => { try { p0.exit?.(); } catch { /* host */ } },
+    onRetry: retryBoot,
+    deviceHint: () => input.device,
+  });
+  ui.register('story', storyScreen);
+  ui.register('transcript', createTranscriptScreen({ onClose: () => ui.pop() }));
+  boot.onChange(() => { loading(Math.min(0.98, boot.fraction), boot.current?.label ?? 'ready'); storyScreen.bootChanged(); });
+  let uiSize = '';
+  const resizeUi = () => {
+    const v = viewport();
+    const key = `${v.w}x${v.h}@${v.pr}`;
+    if (key === uiSize) return;
+    uiSize = key;
+    ui.resize(v.w, v.h, v.pr);
+  };
+  resizeUi();
+  // A player who read (or skipped) the prologue before, on this account, waits
+  // on a short welcome card instead; guests have no saved flag, so they see it
+  // again on their next visit and can skip it.
+  const returning = Boolean(profile.flags.prologueSeen) && !qa.story;
+  let mode = 'story'; // story | attract | select | flight | docking | docked | launching | hangar | base | map
+  ui.show('story', { mode: returning ? 'welcome' : 'story' });
+  // The ambient music may play under the prologue (from the first click or key).
+  configureAudio();
+
+  // Input from the first frame (the boot frames read it too).
+  const safe = fn => e => { try { fn(e ?? {}); } catch (err) { p0.log?.('input error:', err?.message); } };
+  let pointerLogged = false;
+  p0.on?.('pointerdown', safe(e => {
+    audio.gesture();
+    if (!pointerLogged) { pointerLogged = true; p0.log?.('[xplorator] pointer fields:', Object.keys(e).join(','), 'touch=' + Boolean(e.touch)); }
+    if (e.touch) input.device = 'touch';
+    ui.pointerDown(e);
+  }));
+  p0.on?.('pointermove', safe(e => ui.pointerMove(e)));
+  p0.on?.('pointerup', safe(e => ui.pointerUp(e)));
+  p0.on?.('keydown', safe(e => { audio.gesture(); input.latchKey(typeof e === 'string' ? e : e.code); }));
+
+  // One frame entry. Until the game is ready only the interface is drawn
+  // (the prologue covers the screen); then the full loop takes over.
+  let mainFrame = null;
+  const renderInterfaceOnly = () => {
+    renderer.setRenderTarget(null);
+    renderer.setClearColor(0x04060d, 1);
+    renderer.clear(true, true, true);
+    overlay.render(renderer);
+  };
+  let firstFrameLogged = false;
+  p0.loop((dtRaw, time) => {
+    if (mainFrame) { mainFrame(dtRaw, time); return; }
+    if (!firstFrameLogged) { firstFrameLogged = true; p0.log?.(`[xplorator] first prologue frame at ${Math.round(performance.now())} ms (boot +${Math.round(performance.now() - bootT0)} ms)`); }
+    try {
+      const dt = Math.min(Math.max(Number(dtRaw) || 0, 0), 0.1);
+      clock.time += dt;
+      resizeUi();
+      const inp = input.poll(dt, { menu: ui.menuInput });
+      ui.handleEdges(inp.edges);
+      audio.update();
+      ui.update(dt);
+      renderInterfaceOnly();
+    } catch (e) { p0.log?.('boot frame:', e?.message); }
+  });
+
+  // ------------------------------------------------------------- world
+  // Let the first prologue frame and its first panel reach the screen before
+  // the heavy steps below hold this thread (at most 0.9 s on a slow network).
+  await yieldFrame(30);
+  const firstArt = await storyScreen.whenFirstArt(900);
+  p0.log?.(`[xplorator] first panel ${firstArt} before the world build (boot +${Math.round(performance.now() - bootT0)} ms)`);
+  const layout = buildSectorLayout();
+  const sceneBefore = new Set(scene.children);
+  const world = await runTask(boot, 'world', async () => {
+    if (qa.failboot === 'world' && boot.get('world').attempts === 1) throw new Error('simulated failure (local test)');
+    return createWorld({
+      renderer, scene, quality: QUALITY[qualityName], layout,
+      baseTiles: profile.base, powered: profile.powered, vessel: profile.vessel, loadout: profile.equipped, model: shipModel(),
+    });
+  }, { waitRetry, cleanup: () => { for (const c of [...scene.children]) if (!sceneBefore.has(c)) scene.remove(c); } });
+  const bootWorldMs = performance.now() - bootT0;
+  boot.start('systems');
+  await yieldFrame();
+  for (const [id, n] of Object.entries(profile.nodes)) world.field.setNodeAmount(id, n.amount);
+  // Software renderers (e.g. Project 0's review): drop the costliest large
+  // translucent layers; the composition still reads as the same scene.
+  if (soft.software) {
+    world.planet.group.children.forEach(c => { if (c.name === 'PlanetRing' || c.name === 'PlanetAtmosphere') c.visible = false; });
+  }
+  const fx = createFxLayer();
+  world.universe.add(fx.group);
+
+  const pipeline = createPipeline({ renderer, scene, camera, overlay });
+  pipeline.setQuality(qualityName);
+  if (soft.software) pipeline.setSoftwareScale(0.72);
+  const camRig = createCinematicCamera(camera);
+
   // ------------------------------------------------------------- state
   const flight = createFlightState();
   let flightProfile = profileFor(profile.settings.handling, stats);
-  let mode = 'attract'; // attract | select | flight | docking | docked | launching | hangar | base | map
   let paused = false;
   let scanning = null, mining = null, docking = null, launching = null;
   let warning = null;
@@ -141,17 +254,26 @@ export async function createGame(p0) {
   }
   rebuildObstacles();
 
-  function toast(textValue, color) {
-    toasts.push({ id: ++toastId, text: textValue, color, until: game.time + 3.6 });
+  function toast(textValue, color, seconds = 3.6) {
+    toasts.push({ id: ++toastId, text: textValue, color, until: game.time + seconds });
     if (toasts.length > 3) toasts.shift();
   }
 
-  function saveSoon() { saveQueued = true; saveTimer = 1.2; }
+  // Guests cannot keep a save (p0.save answers ok: false; the city's request
+  // returns HTTP 401). After the first refusal the game stops asking for the
+  // rest of the session, says so once, and plays on with progress in memory.
+  let saveRefused = false;
+  function saveSoon() { if (!saveRefused) { saveQueued = true; saveTimer = 1.2; } }
   async function saveNow() {
     saveQueued = false;
+    if (saveRefused || !p0.save) return;
     try {
-      const r = await p0.save?.(serializeProfile(profile));
-      if (r && r.ok === false && r.reason) p0.log?.('save:', r.reason);
+      const r = await p0.save(serializeProfile(profile));
+      if (r && r.ok === false) {
+        saveRefused = true;
+        p0.log?.('[xplorator] save not kept for this session:', r.reason ?? 'refused');
+        toast('Guest: progress lasts until you leave', '#9fb6d8', 6);
+      }
     } catch (e) { p0.log?.('save failed:', e?.message); }
   }
 
@@ -177,6 +299,40 @@ export async function createGame(p0) {
     world.shipRoot.position.set(flight.position.x, flight.position.y, flight.position.z);
     world.shipRoot.quaternion.setFromEuler(new THREE.Euler(-flight.pitch, flight.yaw, flight.bank, 'YXZ'));
     world.shipRoot.updateMatrix();
+  }
+
+  // ------------------------------------------------------------- tutorial
+  // First-flight guidance (Gate D). It only listens: each step finishes on a
+  // real game event reported below, it grants nothing and never changes the
+  // mission. Its state is saved with the profile so it resumes.
+  let tutorial = null;
+  const tutorialRun = { steer: 0, boost: 0, brake: 0 };
+  // When the HUD card's line last changed (it glows for a moment).
+  let tutorialLineAt = -10;
+  function makeTutorial() {
+    tutorial = createTutorial({
+      state: profile.tutorial,
+      firstMission: () => !['complete', 'free'].includes(profile.mission.step),
+      // A new line on the HUD card (briefing lines chirp from their own screen).
+      onLine: ([speaker]) => { if (speaker === 'control' && mode !== 'story') audio.play('radio', clock.time); },
+    });
+  }
+  function tut(event) {
+    if (!tutorial?.active || !tutorial.handle(event)) return;
+    tutorialLineAt = clock.time;
+    profile.tutorial = tutorial.serialize();
+    p0.log?.(`[xplorator] tutorial: ${event} -> ${tutorial.step ?? 'done'}`);
+    saveSoon();
+  }
+  // Steering, boost and brake count only while really held (seconds of input).
+  function tutorialInput(dt, inp) {
+    if (!tutorial?.active) return;
+    const step = tutorial.step;
+    if (step === 'steer' && Math.abs(inp.yaw) + Math.abs(inp.pitch) > 0.35 && (tutorialRun.steer += dt) >= 1.0) tut('steered');
+    if (step === 'speed') {
+      if (inp.boost > 0.5 && (tutorialRun.boost += dt) >= 0.4) tut('boosted');
+      if (inp.brake > 0.3 && (tutorialRun.brake += dt) >= 0.3) tut('braked');
+    }
   }
 
   // ------------------------------------------------------------- flight
@@ -210,6 +366,7 @@ export async function createGame(p0) {
     collide();
     applyShipTransform();
     interactions(dt);
+    tutorialInput(dt, inp);
   }
 
   const fwdV = new THREE.Vector3(), rightV = new THREE.Vector3(), upV = new THREE.Vector3(), relV = new THREE.Vector3();
@@ -219,7 +376,8 @@ export async function createGame(p0) {
     rightV.crossVectors(fwdV, upV.set(0, 1, 0)).normalize();
     upV.crossVectors(rightV, fwdV).normalize();
     const look = 18 + flight.speed * 1.6;
-    const shipR = world.ship.radius;
+    // Gameplay radius (the Mk2 reports the M1 ship's: identical clearances).
+    const shipR = world.ship.hitRadius ?? world.ship.radius;
     let sx = 0, sy = 0, brake = 0;
     for (const o of obstacles) {
       relV.subVectors(o.position, pos);
@@ -241,7 +399,7 @@ export async function createGame(p0) {
 
   function collide() {
     const p = v3(flight.position);
-    const shipR = world.ship.radius * 0.8;
+    const shipR = (world.ship.hitRadius ?? world.ship.radius) * 0.8;
     for (const o of obstacles) {
       const r = o.radius + shipR;
       const d2 = p.distanceToSquared(o.position);
@@ -289,9 +447,10 @@ export async function createGame(p0) {
     const obj = objective(profile, layout.nodes, [p.x, p.y, p.z]);
     if (obj.kind === 'node' && obj.target) {
       const n = layout.nodes.find(x => x.id === obj.target);
-      if (n && onApproach(profile, n, p.distanceTo(tmp.set(...n.position)) - n.radius, stats.scanRange)) saveSoon();
+      if (n && onApproach(profile, n, p.distanceTo(tmp.set(...n.position)) - n.radius, stats.scanRange)) { saveSoon(); tut('approached'); }
     }
     onNearDock(profile, dockDistance());
+    if (cargoUsed(profile) > 0 && dockDistance() < 70) tut('nearDock');
 
     if (scanning) {
       scanning.t += dt;
@@ -302,6 +461,7 @@ export async function createGame(p0) {
         scanning = null;
         camRig.setActionZoom(1);
         onScanned(profile, node);
+        tut('scanned');
         audio.play('scanDone', game.time);
         const purity = 72 + Math.round(((node.position[0] * 13 + node.position[2] * 7) % 25 + 25) % 25);
         scanCard = {
@@ -321,6 +481,8 @@ export async function createGame(p0) {
         mining = null;
         const r = onCollected(profile, node, { capacity: stats.capacity, yieldFactor: stats.yieldFactor, playSeconds: profile.stats.playSeconds });
         if (r.amount > 0) {
+          tut('collected');
+          if (profile.mission.step === 'return') tut('holdReady');
           world.field.setNodeAmount(node.id, 0);
           toast(`+${r.amount} ${RESOURCES[r.key].label}`, RESOURCES[r.key].color);
           audio.play('collect', game.time);
@@ -413,6 +575,7 @@ export async function createGame(p0) {
       flight.speed = 0;
       camRig.setActionZoom(0.9);
       const r = onDocked(profile);
+      tut('docked');
       audio.play('dock', game.time);
       const parts = [];
       if (r.delivered.cryon) parts.push(`${r.delivered.cryon} Cryon`);
@@ -430,6 +593,7 @@ export async function createGame(p0) {
     if (ui.is('docked') || ui.is('complete')) ui.pop();
     if (profile.mission.step === 'complete') profile.mission.step = 'free';
     const from = v3(flight.position);
+    tut('launched');
     launching = { t: 0, from, to: from.clone().add(new THREE.Vector3(0, 7, 28)) };
     audio.play('launch', game.time);
     mode = 'launching';
@@ -475,17 +639,44 @@ export async function createGame(p0) {
   const hangarPad = createHangarPad();
   showroom.add(hangarPad);
   function showroomShip(key, vessel, loadout) {
-    const sig = `${vessel}:${JSON.stringify(loadout)}`;
+    const sig = `${vessel}:${JSON.stringify(loadout)}:${shipModel()}`;
     let entry = showShips.get(key);
     if (entry && entry.sig === sig) return entry;
     if (entry) { showroom.remove(entry.ship.group); entry.ship.dispose(); }
-    const ship = buildShip({ vessel, loadout });
+    const ship = buildShip({ vessel, loadout, model: shipModel() });
     showroom.add(ship.group);
     entry = { ship, sig };
     showShips.set(key, entry);
     return entry;
   }
+  // Dark showroom stages: one opaque backdrop per vessel card window, so each
+  // ship reads against a calm navy spotlight rather than the bright planet.
+  const stages = new Map();
+  function showroomStage(key) {
+    let stage = stages.get(key);
+    if (stage) return stage;
+    stage = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShaderMaterial({
+      uniforms: { uAspect: { value: 1 }, uSelected: { value: 0 } },
+      vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: `varying vec2 vUv; uniform float uAspect; uniform float uSelected;
+        void main() {
+          vec2 p = (vUv - vec2(0.5, 0.46)) * vec2(uAspect, 1.0);
+          float r = length(p);
+          vec3 inner = mix(vec3(0.05, 0.09, 0.2), vec3(0.06, 0.13, 0.27), uSelected);
+          vec3 c = mix(inner, vec3(0.012, 0.022, 0.06), smoothstep(0.0, 0.75, r));
+          gl_FragColor = vec4(c, 1.0);
+        }`,
+    }));
+    stage.name = `Stage:${key}`;
+    stage.frustumCulled = false;
+    stage.renderOrder = -1;
+    stage.visible = false;
+    showroom.add(stage);
+    stages.set(key, stage);
+    return stage;
+  }
   function hideShowroom() {
+    for (const s of stages.values()) s.visible = false;
     for (const e of showShips.values()) e.ship.group.visible = false;
     hangarPad.visible = false;
     world.field.group.visible = true;
@@ -628,6 +819,8 @@ export async function createGame(p0) {
       touch: touchMode,
       markers,
       docked: mode === 'docked',
+      tutorial: game.tutorialView(),
+      pilot: profile.settings.pilot,
     };
     return hudModel;
   }
@@ -655,7 +848,7 @@ export async function createGame(p0) {
       seen.add(id);
       let r = world.remote.get(id);
       if (!r) {
-        const ship = buildShip({ vessel: 'survivor' });
+        const ship = buildShip({ vessel: 'survivor', model: shipModel() });
         ship.group.scale.setScalar(0.9);
         world.universe.add(ship.group);
         r = { object: ship.group, ship, pos: new THREE.Vector3(), yaw: 0, init: false };
@@ -673,10 +866,16 @@ export async function createGame(p0) {
     for (const [id, r] of world.remote) if (!seen.has(id)) { world.universe.remove(r.object); r.ship.dispose(); world.remote.delete(id); }
   }
 
+  function setHelpHud() {
+    try { p0.hud?.(input.device === 'touch' ? HELP_TEXT_TOUCH : HELP_TEXT); } catch { /* optional */ }
+  }
+
   // ------------------------------------------------------------- game API for screens
   let lastInput = { boost: 0, brake: 0 };
   const game = {
-    p0, ui, input, world, layout, overlay, time: 0,
+    p0, ui, input, world, layout, overlay, boot,
+    get time() { return clock.time; },
+    set time(v) { clock.time = v; },
     get profile() { return profile; },
     get stats() { return stats; },
     get hasSave() { return hasSave; },
@@ -711,7 +910,12 @@ export async function createGame(p0) {
       if (ui.is('pause')) ui.pop();
     },
     startNewJourney(vessel = 'survivor') {
+      // A new journey keeps what the player has already seen (the prologue).
+      const flags = { ...profile.flags };
       profile = newProfile(vessel);
+      profile.flags = flags;
+      Object.assign(tutorialRun, { steer: 0, boost: 0, brake: 0 });
+      makeTutorial();
       hasSave = true;
       applyStats();
       world.setShip(profile.vessel, profile.equipped);
@@ -734,6 +938,47 @@ export async function createGame(p0) {
       camRig.reset();
       if (saveQueued) saveNow();
       ui.show('menu');
+      setHelpHud();
+    },
+    /** The tutorial's card for the HUD (null when it is not running, or during the briefing). */
+    tutorialView() {
+      if (!tutorial?.active || tutorial.briefing || !['flight', 'docked', 'launching', 'docking'].includes(mode)) return null;
+      return { ...tutorial.current(), fresh: clock.time - tutorialLineAt < 3 };
+    },
+    /** The briefing line on screen (src/ui/transmission.js), or null. */
+    briefingView() { return tutorial?.briefing ? { ...tutorial.current(), device: input.device } : null; },
+    /** Continue in the briefing: the next line, or the controls to the pilot. */
+    radioNext() {
+      if (!tutorial?.next()) return;
+      if (!tutorial.briefing) { tutorialLineAt = clock.time; p0.log?.('[xplorator] tutorial: briefing heard'); }
+    },
+    playRadio() { audio.play('radio', clock.time); },
+    get tutorialActive() { return Boolean(tutorial?.active); },
+    skipTutorial() {
+      if (!tutorial?.active) return;
+      tutorial.skip();
+      profile.tutorial = tutorial.serialize();
+      saveSoon();
+    },
+    replayTutorial() {
+      Object.assign(tutorialRun, { steer: 0, boost: 0, brake: 0 });
+      tutorial.restart();
+      profile.tutorial = tutorial.serialize();
+      saveSoon();
+    },
+    /** BEGIN THE EXODUS (or SKIP when ready): to the main menu, never into flight. */
+    finishPrologue() {
+      if (!boot.ready) return;
+      profile.flags.prologueSeen = true;
+      // Signed-in players keep the flag with their save; a new player's first
+      // save is written when the journey starts.
+      if (hasSave) saveSoon();
+      game.toMenu();
+    },
+    openPrologue() {
+      paused = false;
+      mode = 'story';
+      ui.show('story', { mode: 'story' });
     },
     openSelect() {
       mode = 'select';
@@ -759,6 +1004,7 @@ export async function createGame(p0) {
       paused = true; scanning = null; mining = null;
       mode = 'base';
       ui.show('base');
+      tut('baseOpened');
     },
     openMap(from) {
       game.returnMode = from ?? (mode === 'docked' ? 'docked' : mode === 'attract' ? 'attract' : 'flight');
@@ -767,6 +1013,7 @@ export async function createGame(p0) {
       ui.show('map');
     },
     closeSubscreen() {
+      if (mode === 'base') tut('baseClosed');
       hideShowroom();
       world.universe.visible = true;
       world.shipRoot.visible = true;
@@ -818,6 +1065,7 @@ export async function createGame(p0) {
     localToHex,
     hexToLocal,
     showroomShip,
+    showroomStage,
     hideShowroom,
     hangarPad,
     setCameraWorld(p) { camWorld.copy(p); },
@@ -831,16 +1079,20 @@ export async function createGame(p0) {
       input.setBindings(profile.settings.bindings);
       input.setOptions({ invert: profile.settings.invertY, sens: profile.settings.sensitivity });
       camRig.setBaseZoom(profile.settings.cameraZoom);
-      audio.configure({ sound: profile.settings.sound, musicEnabled: profile.settings.music });
-  audio.preload();
+      configureAudio();
+      audio.preload();
       applyStats();
+      if (changed === 'shipModel') world.setShip(profile.vessel, profile.equipped, shipModel());
       if (!changed || changed === 'quality') {
         const next = resolveQuality(profile.settings.quality);
         if (next !== qualityName) { qualityName = next; UI_FX.shadows = next !== 'low'; pipeline.setQuality(qualityName); resize(true); }
       }
     },
     resetProgress() {
+      const flags = { ...profile.flags };
       profile = newProfile();
+      profile.flags = flags;
+      makeTutorial();
       hasSave = false;
       applyStats();
       world.setShip(profile.vessel, profile.equipped);
@@ -848,7 +1100,7 @@ export async function createGame(p0) {
       for (const n of layout.nodes) world.field.setNodeAmount(n.id, 1);
       rebuildObstacles();
       game.applySettings();
-      p0.save?.(null);
+      if (!saveRefused) p0.save?.(null);
     },
     saveNow,
     // Read-only snapshot for local test scripts (never used by the game itself).
@@ -864,6 +1116,9 @@ export async function createGame(p0) {
         target, targetId: obj.target, kind: obj.kind, scanRange: stats.scanRange, scanning: Boolean(scanning), mining: Boolean(mining),
         interact: interactState(), fraction: camRig.state.measured, quality: qualityName,
         equipped: { ...profile.equipped }, inventory: [...profile.inventory], powered: profile.powered,
+        story: ui.has('story') ? storyScreen.debug() : null, boot: { ready: boot.ready, fraction: +boot.fraction.toFixed(3), tasks: boot.snapshot() },
+        prologueSeen: profile.flags.prologueSeen,
+        tutorial: tutorial ? { step: tutorial.step, done: tutorial.done, briefing: tutorial.briefing } : null,
       };
     },
   };
@@ -879,12 +1134,17 @@ export async function createGame(p0) {
     launch();
   }
 
+  makeTutorial();
+
   // ------------------------------------------------------------- screens
   ui.register('hud', createHud(game));
+  ui.register('radio', createTransmission(game));
   registerScreens(ui, game);
   ui.register('hangar', createHangarScreen(game));
   ui.register('map', createMapScreen(game));
   ui.register('base', createBaseScreen(game));
+  const perf = createPerfReport(game);
+  ui.setDevOverlay(perf);
 
   // ------------------------------------------------------------- events
   let lastSize = '';
@@ -893,6 +1153,7 @@ export async function createGame(p0) {
     const key = `${v.w}x${v.h}@${v.pr}`;
     if (!force && key === lastSize) return;
     lastSize = key;
+    uiSize = key;
     pipeline.resize(v.w, v.h, v.pr);
     ui.resize(v.w, v.h, v.pr);
     camera.aspect = v.w / v.h;
@@ -900,60 +1161,58 @@ export async function createGame(p0) {
   }
   resize(true);
 
-  const safe = fn => e => { try { fn(e ?? {}); } catch (err) { p0.log?.('input error:', err?.message); } };
-  let pointerLogged = false;
-  p0.on?.('pointerdown', safe(e => {
-    if (!pointerLogged) { pointerLogged = true; p0.log?.('[xplorator] pointer fields:', Object.keys(e).join(','), 'touch=' + Boolean(e.touch)); }
-    if (e.touch) input.device = 'touch';
-    ui.pointerDown(e);
-  }));
-  p0.on?.('pointermove', safe(e => ui.pointerMove(e)));
-  p0.on?.('pointerup', safe(e => ui.pointerUp(e)));
   p0.on?.('wheel', safe(e => {
     const dy = e.deltaY ?? e.dy ?? e.y ?? 0;
     if (ui.topId === 'map') ui.screen('map').wheel?.(dy);
+    else if (ui.topId === 'transcript') ui.screen('transcript').wheel?.(dy);
     else if (mode === 'flight') camRig.zoomBy(Math.sign(dy) * 0.08);
   }));
-  p0.on?.('keydown', safe(e => input.latchKey(typeof e === 'string' ? e : e.code)));
   p0.on?.('resize', () => resize());
   p0.on?.('pad', active => { input.device = active ? 'pad' : 'kbm'; ui.invalidate(); });
   p0.on?.('pointerlock', () => ui.cancelTouches());
   p0.on?.('update', () => toast('A new version is ready next time you enter', '#70E2F4'));
 
-  // Start in the menu with the attract flight behind it.
+  // The attract flight waits behind the prologue (the menu shows it).
   placeAtDock(4);
   updateAttract(0.016);
-  ui.show('menu');
+  boot.done('systems');
 
   // ------------------------------------------------------------- warm-up
-  loading(0.75, 'warming the engines');
-  updateCamera(0.016);
-  world.setCameraWorld(camWorld, anchor);
-  world.updateEffects(0.016, 0, { camera, viewportHeight: viewport().h, pixelRatio: viewport().pr, thrust: 0.5, boosting: false });
-  // Make every material visible once (showroom pad included) for compilation.
-  hangarPad.visible = true;
-  // Build the four vessel previews now, so the selection screen opens without a stall.
-  for (const v of VESSELS) showroomShip(`select-${v.id}`, v.id, undefined).ship.group.visible = true;
-  fx.prepare();
-  UI_FX.shadows = qualityName !== 'low';
-  const warm = await pipeline.warmUp(f => loading(0.75 + 0.15 * f, 'warming the engines'));
+  const warm = await runTask(boot, 'engines', async progress => {
+    const modeBefore = mode;
+    mode = 'attract';
+    updateCamera(0.016);
+    mode = modeBefore;
+    world.setCameraWorld(camWorld, anchor);
+    world.updateEffects(0.016, 0, { camera, viewportHeight: viewport().h, pixelRatio: viewport().pr, thrust: 0.5, boosting: false });
+    // Make every material visible once (showroom pad included) for compilation.
+    hangarPad.visible = true;
+    // Build the four vessel previews now, so the selection screen opens without a stall.
+    for (const v of VESSELS) {
+      showroomShip(`select-${v.id}`, v.id, undefined).ship.group.visible = true;
+      showroomStage(`select-${v.id}`).visible = true;
+    }
+    fx.prepare();
+    UI_FX.shadows = qualityName !== 'low';
+    try { return await pipeline.warmUp(progress); } finally { hangarPad.visible = false; hideShowroom(); fx.reset(); }
+  }, { waitRetry });
   // Draw every screen once (the canvas renderer compiles its effects lazily).
-  const prewarmStart = performance.now();
-  for (const id of ['hud', 'select', 'hangar', 'map', 'base', 'pause', 'settings', 'docked', 'complete', 'help', 'menu']) {
-    ui.prewarm(id);
-    // One marker sprite too, so the sprite pipeline compiles now rather than at launch.
-    overlay.spritesBegin();
-    overlay.sprite(-50, -50, 8, 1, [0, 0, 0, 0]);
-    overlay.spritesEnd();
-    overlay.render(renderer);
-    loading(0.9 + 0.08 * (performance.now() - prewarmStart > 0 ? 1 : 0), 'preparing the interface');
-    await new Promise(resolve => setTimeout(resolve, 16));
-  }
-  ui.invalidate();
+  // Between two screens the prologue frame redraws (prewarm marks it dirty).
+  await runTask(boot, 'interface', async progress => {
+    const ids = ['hud', 'select', 'hangar', 'map', 'base', 'pause', 'settings', 'docked', 'complete', 'help', 'menu', 'choice'];
+    for (const [i, id] of ids.entries()) {
+      ui.prewarm(id);
+      // One marker sprite too, so the sprite pipeline compiles now rather than at launch.
+      overlay.spritesBegin();
+      overlay.sprite(-50, -50, 8, 1, [0, 0, 0, 0]);
+      overlay.spritesEnd();
+      overlay.render(renderer);
+      progress((i + 1) / ids.length);
+      await yieldFrame();
+    }
+    ui.invalidate();
+  }, { waitRetry });
   const warmMs = warm.total;
-  hangarPad.visible = false;
-  hideShowroom();
-  fx.reset();
   // Compile time is not frame time: only a software renderer (or a material
   // taking very long to compile, as on one) starts on the light version; slow
   // frames are handled at runtime.
@@ -964,20 +1223,25 @@ export async function createGame(p0) {
     resize(true);
   }
   p0.log?.(`[xplorator] renderer=${soft.name} quality=${qualityName} warmup=${Math.round(warmMs)}ms (${warm.kinds} material kinds, slowest ${Math.round(warm.slowest)}ms) world=${Math.round(bootWorldMs)}ms`);
-  try { p0.hud?.(input.device === 'touch' ? HELP_TEXT_TOUCH : HELP_TEXT); } catch { /* optional */ }
-  audio.configure({ sound: profile.settings.sound, musicEnabled: profile.settings.music });
+  boot.start('sound');
+  audio.preload();
+  boot.done('sound');
+  if (mode !== 'story') setHelpHud();
   loading(1, 'Outer Verge');
-  // Let the final progress message reach the host before start() resolves.
-  await new Promise(resolve => setTimeout(resolve, 60));
+  // Let the final progress message reach the host before start() resolves:
+  // the runtime sends at most one update every 250 ms and drops a pending one
+  // when start() returns (M1 waited 60 ms and the bar stayed at 97 %).
+  await new Promise(resolve => setTimeout(resolve, 300));
 
   // ------------------------------------------------------------- frame loop
   let slowFrames = 0;
   let lastLoopMs = 0;
   p0.log?.(`[xplorator] start() finished after ${Math.round(performance.now() - bootT0)} ms`);
-  p0.loop((dtRaw) => {
+  mainFrame = (dtRaw) => {
     // Diagnostic for very long frames (wall clock; dev console only).
     const nowMs = performance.now();
     if (lastLoopMs && nowMs - lastLoopMs > 1000) p0.log?.(`[xplorator] long frame ${Math.round(nowMs - lastLoopMs)} ms in ${mode}/${ui.topId} at ${game.time.toFixed(1)} s`);
+    if (lastLoopMs && perf.enabled && perf.sample(nowMs - lastLoopMs, Math.min(Math.max(Number(dtRaw) || 0, 0), 0.1))) ui.invalidate();
     lastLoopMs = nowMs;
     const dt = Math.min(Math.max(Number(dtRaw) || 0, 0), 0.1);
     game.time += dt;
@@ -987,8 +1251,22 @@ export async function createGame(p0) {
     lastInput = inp;
     ui.handleEdges(inp.edges);
 
+    if (mode === 'story') {
+      // The prologue covers the screen: no world to simulate or draw.
+      if (storyScreen.mode === 'welcome' && ui.is('story') && boot.ready) game.toMenu();
+      if (saveQueued) { saveTimer -= dt; if (saveTimer <= 0) saveNow(); }
+      audio.update();
+      ui.update(dt);
+      renderInterfaceOnly();
+      return;
+    }
+
+    // The opening briefing: the ship holds position while Haven Control talks,
+    // and each line waits for the player (src/ui/transmission.js).
+    if (mode === 'flight' && !paused && tutorial?.briefing && ui.is('hud')) ui.push('radio');
+    else if (ui.is('radio') && !tutorial?.briefing) ui.pop();
     if (mode === 'attract') updateAttract(dt);
-    else if (mode === 'flight' && !paused) updateFlight(dt, inp);
+    else if (mode === 'flight' && !paused && !ui.has('radio')) updateFlight(dt, inp);
     else if (mode === 'docking') updateDocking(dt);
     else if (mode === 'launching') updateLaunching(dt);
     else if (mode === 'docked') { applyShipTransform(); flight.speed = 0; }
@@ -1015,6 +1293,7 @@ export async function createGame(p0) {
     const tD = performance.now();
 
     if (saveQueued) { saveTimer -= dt; if (saveTimer <= 0) saveNow(); }
+    audio.update();
     pipeline.render();
     const tE = performance.now();
     if (tE - tA > 500) p0.log?.(`[xplorator] slow frame body: sim ${Math.round(tB - tA)} effects ${Math.round(tC - tB)} ui ${Math.round(tD - tC)} render ${Math.round(tE - tD)} ms (${mode}/${ui.topId})`);
@@ -1025,7 +1304,7 @@ export async function createGame(p0) {
       qualityName = 'low';
       UI_FX.shadows = false; pipeline.setQuality('low'); resize(true); slowFrames = 0;
     }
-  });
+  };
 
   return game;
 }

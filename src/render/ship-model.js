@@ -129,24 +129,36 @@ function mirrorX(g) {
   return m;
 }
 
+/**
+ * Vertex-coloured, flat-shaded standard material with a cool rim light that
+ * keeps small white silhouettes readable on the dark sky and the bright
+ * planet. The rim strength is a uniform, so every hull that uses it (the M1
+ * ship, the station, the Explorer Mk2) shares ONE compiled shader program:
+ * fewer programs to compile at start, which matters on software renderers.
+ */
+export function rimMaterial({ rim, ...params }) {
+  const material = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, ...params });
+  const strength = { value: rim };
+  material.onBeforeCompile = shader => {
+    shader.uniforms.xpRimStrength = strength;
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform float xpRimStrength;')
+      .replace(
+        '#include <emissivemap_fragment>',
+        `#include <emissivemap_fragment>
+        // 'normal' is the view-space normal (flat-shaded meshes have no vNormal).
+        float xpRim = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 3.0);
+        totalEmissiveRadiance += vec3(0.42, 0.78, 1.0) * xpRim * xpRimStrength;`,
+      );
+  };
+  material.customProgramCacheKey = () => 'xp-rim';
+  return material;
+}
+
 let materials = null;
 export function shipMaterials() {
   if (materials) return materials;
-  const hull = new THREE.MeshStandardMaterial({
-    vertexColors: true, roughness: 0.36, metalness: 0.22, flatShading: true,
-  });
-  // Cool rim light keeps the tiny white silhouette readable against both the
-  // dark sky and the bright planet.
-  hull.onBeforeCompile = shader => {
-    shader.fragmentShader = shader.fragmentShader.replace(
-      '#include <emissivemap_fragment>',
-      `#include <emissivemap_fragment>
-      // 'normal' is the view-space normal (flat-shaded meshes have no vNormal).
-      float xpRim = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 3.0);
-      totalEmissiveRadiance += vec3(0.42, 0.78, 1.0) * xpRim * 0.55;`,
-    );
-  };
-  hull.customProgramCacheKey = () => 'xp-hull-rim';
+  const hull = rimMaterial({ rim: 0.55, roughness: 0.36, metalness: 0.22 });
   materials = {
     hull,
     glass: new THREE.MeshStandardMaterial({
@@ -331,6 +343,9 @@ export function buildShip({ vessel = 'survivor', loadout = defaultLoadout() } = 
     },
   };
 }
+
+// Geometry helpers shared with the Explorer Mk2 (ship-mk2.js).
+export { paint, loft, plate, cylinderZ, box, mirrorX };
 
 const SHOW_X = new THREE.Vector3(), SHOW_Y = new THREE.Vector3(), SHOW_Z = new THREE.Vector3();
 const SHOW_M = new THREE.Matrix4(), SHOW_Q = new THREE.Quaternion(), SPIN_Q = new THREE.Quaternion();

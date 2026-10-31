@@ -24,7 +24,10 @@ const browser = await chromium.launch({ headless, args: headless ? ['--use-angle
 const page = await (await browser.newContext({ viewport: { width: W, height: H } })).newPage();
 const errors = [];
 page.on('pageerror', e => errors.push(e.message));
-page.on('console', m => { if (m.type() === 'error' && !m.text().includes('404')) errors.push(m.text()); });
+page.on('console', m => {
+  if (m.type() === 'error' && !m.text().includes('404')) errors.push(m.text());
+  if (m.text().includes('[xplorator] tutorial:')) note(m.text().replace(/^.*\[xplorator\] /, ''));
+});
 const log = [];
 const note = s => { const line = `[${((Date.now() - t0) / 1000).toFixed(1)}s] ${s}`; log.push(line); console.log(line); };
 const t0 = Date.now();
@@ -42,16 +45,48 @@ const hold = async (code, on) => {
 const releaseAll = async () => { for (const c of [...held]) await hold(c, false); };
 const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
 
-await page.waitForTimeout(2500);
+await page.waitForTimeout(1500);
+// M2: a fresh profile starts in the Exodus prologue. Read it with the keys
+// (→ six times), then BEGIN THE EXODUS (Space) opens the main menu.
+if ((await state()).top === 'story') {
+  for (let i = 0; i < 6; i++) { await tap('ArrowRight'); await page.waitForTimeout(250); }
+  await page.waitForTimeout(400);
+  await tap('Space');
+  await page.waitForFunction(() => window.__xpGame.debugState().top === 'menu', null, { timeout: 8000 });
+  note('prologue read, main menu');
+  await page.waitForTimeout(1200);
+}
 await tap('Space'); // New Journey (focused on a fresh profile)
 await page.waitForTimeout(1500);
 // Start Journey: focus moves down from the Survivor card to the buttons.
 await tap('ArrowDown'); await page.waitForTimeout(150);
 let s = await state();
 if (s.top === 'select') { await tap('ArrowRight'); await page.waitForTimeout(150); await tap('Space'); }
+// M2: a pressure-free check opens ("Continue free" / "View other ships"); Continue free is focused.
+await page.waitForTimeout(400);
+s = await state();
+if (s.top === 'choice') { await tap('Space'); }
 await page.waitForFunction(() => window.__xpGame.debugState().mode === 'flight', null, { timeout: 20000 });
 note('flight started');
 await shot('01-launch');
+// The opening briefing (new journeys): the ship holds and every line waits for Continue.
+let briefingOk = true;
+await page.waitForTimeout(800);
+s = await state();
+if (s.tutorial?.briefing) {
+  const p0 = s.pos;
+  await page.waitForTimeout(1500);
+  const p1 = (await state()).pos;
+  const holds = Math.hypot(p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]) < 0.01;
+  note(`briefing open (top ${(await state()).top}), ship ${holds ? 'holds position' : 'MOVES'}`);
+  await shot('01b-briefing');
+  let presses = 0;
+  for (; presses < 8 && (await state()).tutorial.briefing; presses++) { await tap('Space'); await page.waitForTimeout(1700); }
+  s = await state();
+  note(`briefing ${s.tutorial.briefing ? 'STILL OPEN' : 'heard'} after ${presses} presses, top ${s.top}, step ${s.tutorial.step}`);
+  briefingOk = holds && !s.tutorial.briefing && s.top === 'hud';
+  if (!briefingOk) note('FAIL: briefing');
+}
 
 const milestones = new Set();
 let lastStep = '';
@@ -97,6 +132,25 @@ while (Date.now() < deadline) {
   await page.waitForTimeout(90);
 }
 await releaseAll();
+// Optional (--tutorial): finish the first-flight tutorial with real keys:
+// Orbital Base from the completion panel, back to the pad, read the last
+// line, launch.
+if (ok && args.includes('--tutorial')) {
+  await tap('ArrowRight'); await page.waitForTimeout(150); await tap('ArrowRight'); await page.waitForTimeout(150);
+  await tap('Space');
+  await page.waitForFunction(() => window.__xpGame.debugState().top === 'base', null, { timeout: 8000 });
+  note(`orbital base open, tutorial ${(await state()).tutorial.step}`);
+  await page.waitForTimeout(1500);
+  await tap('Backspace');
+  await page.waitForTimeout(1500);
+  note(`back at the pad, tutorial ${(await state()).tutorial.step}`);
+  await shot('09-tutorial-last-line');
+  await tap('KeyE');
+  await page.waitForTimeout(3000);
+  const t = (await state()).tutorial;
+  note(`launched, tutorial ${t.done ? 'done' : t.step}`);
+  if (!t.done) { ok = false; note('FAIL: tutorial not finished'); }
+}
 // Optional: spend the delivered Cryon in the hangar (craft + equip Ion Drive II).
 if (ok && args.includes('--hangar')) {
   await tap('Space'); // 'Open Hangar' is the default focus on the completion panel
@@ -118,6 +172,7 @@ if (ok && args.includes('--hangar')) {
   await shot('08-hangar-upgraded');
   if (after.equipped.engine !== 2) { ok = false; note('FAIL: Ion Drive II not equipped'); }
 }
+if (!briefingOk) ok = false;
 const final = await state();
 fs.writeFileSync(path.join(out, 'playtest.json'), JSON.stringify({ ok, final, errors, log }, null, 2));
 note(`${ok ? 'PASS' : 'FAIL'} · bank ${final.bank.cryon} Cryon / ${final.bank.ferrite} Ferrite · errors ${errors.length}`);

@@ -5,14 +5,20 @@
  */
 export const VESSELS = Object.freeze([
   { id: 'survivor', name: 'Survivor', att: 0, crew: 3, cargoBonus: 0, available: true,
-    perk: '3 survivors', blurb: 'A small crew, a new chance.' },
+    perk: '3 survivors', blurb: 'A small crew, a new chance.',
+    benefit: 'Free starter ship. Plays the whole journey.' },
   { id: 'pioneer', name: 'Pioneer', att: 2, crew: 8, cargoBonus: 4, available: false,
-    perk: '8 survivors', blurb: 'More crew, more potential.' },
+    perk: '8 survivors', blurb: 'More crew, more potential.',
+    benefit: 'Planned: a larger crew and a little more cargo.' },
   { id: 'colony', name: 'Colony Ship', att: 5, crew: 12, cargoBonus: 16, available: false,
-    perk: 'Increased cargo', blurb: 'Bring more resources for your new home.' },
+    perk: 'Increased cargo', blurb: 'Bring more resources for your new home.',
+    benefit: 'Planned: a freighter with a large hold.' },
   { id: 'exodus', name: 'Exodus Vessel', att: 10, crew: 24, cargoBonus: 24, available: false,
-    perk: 'Large crew + fast growth', blurb: 'A true beginning for a new civilisation.' },
+    perk: 'Large crew + fast growth', blurb: 'A true beginning for a new civilisation.',
+    benefit: 'Planned: a flagship for a large crew.' },
 ]);
+// Base cargo of the starter Belly Pod (MODULES.cargo level 1), for vessel cards.
+export const BASE_CARGO = 12;
 
 export const SOCKET_INFO = Object.freeze({
   engine: { label: 'Engine', stat: 'Speed' },

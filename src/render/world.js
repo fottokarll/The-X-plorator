@@ -5,7 +5,9 @@ import { createPlanet, PLANET_PALETTES } from './planet.js';
 import { createGlowPoints, createTrails, createDust, createStars, createRays } from './effects.js';
 import { createAsteroidField } from './asteroids.js';
 import { createStation, createGhostTile } from './station.js';
-import { buildShip, shipMaterials } from './ship-model.js';
+import { shipMaterials } from './ship-model.js';
+import { buildShip } from './ship-builder.js';
+import { mk2Materials } from './ship-mk2.js';
 
 /**
  * The Outer Verge scene graph. Everything that lives in the game universe is
@@ -13,7 +15,7 @@ import { buildShip, shipMaterials } from './ship-model.js';
  * keeps the camera at the Project 0 lot's centre (floating origin), so the
  * camera never leaves the lot box while the sector is thousands of metres wide.
  */
-export function createWorld({ renderer, scene, quality, layout, baseTiles, powered, vessel, loadout }) {
+export function createWorld({ renderer, scene, quality, layout, baseTiles, powered, vessel, loadout, model = 'mk2' }) {
   const universe = new THREE.Group();
   universe.name = 'Universe';
   scene.add(universe);
@@ -82,15 +84,17 @@ export function createWorld({ renderer, scene, quality, layout, baseTiles, power
   shipRoot.name = 'PlayerShip';
   universe.add(shipRoot);
   let ship = null;
-  function setShip(nextVessel, nextLoadout) {
+  let shipModel = model;
+  function setShip(nextVessel, nextLoadout, nextModel = shipModel) {
+    shipModel = nextModel;
     if (ship) { shipRoot.remove(ship.group); ship.dispose(); }
-    ship = buildShip({ vessel: nextVessel, loadout: nextLoadout });
+    ship = buildShip({ vessel: nextVessel, loadout: nextLoadout, model: shipModel });
     shipRoot.add(ship.group);
     trails?.reset();
     return ship;
   }
   let trails = null;
-  setShip(vessel, loadout);
+  setShip(vessel, loadout, model);
   trails = createTrails({
     emitters: [{ width: 0.07, strength: 1 }, { width: 0.07, strength: 1 }, { width: 0.32, strength: 0.28 }],
     points: 110, lifetime: 3.4,
@@ -121,6 +125,7 @@ export function createWorld({ renderer, scene, quality, layout, baseTiles, power
   const tmp = new THREE.Vector3();
   const nozzleWorld = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
   shipMaterials();
+  mk2Materials();
 
   return {
     scene, universe, sky, planet, moons, field, station, ghost, shipRoot, trails, glows, stars, dust, rays, showLight,
@@ -174,10 +179,12 @@ export function createWorld({ renderer, scene, quality, layout, baseTiles, power
         }
         nozzleWorld[2].lerpVectors(nozzleWorld[0], nozzleWorld[1], 0.5);
         const glowSize = (0.32 + thrust * 0.22 + (boosting ? 0.22 : 0));
+        // Exhaust colours per model: the Mk2 burns blue, the M1 amber.
+        const core = ship.exhaust?.core ?? [1.0, 0.62, 0.3], halo = ship.exhaust?.halo ?? [0.16, 0.42, 0.85];
         for (const p of n) {
           tmp.copy(p).applyMatrix4(shipWorld);
-          glows.add(tmp, glowSize, [1.0, 0.62, 0.3]);
-          glows.add(tmp, glowSize * 2.4, [0.16, 0.42, 0.85]);
+          glows.add(tmp, glowSize, core);
+          glows.add(tmp, glowSize * 2.4, halo);
         }
         trails.update(dt, nozzleWorld, cameraWorld, 0.5 + thrust * 0.5 + (boosting ? 0.4 : 0));
         // Veil sits a few ship-lengths behind the ship on the camera ray.

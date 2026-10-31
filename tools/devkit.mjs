@@ -54,7 +54,15 @@ const press = async (code, ms) => page.evaluate(([c, m]) => window.devkit.press(
 
 const report = { url, status };
 if (status === 'started') {
-  await page.waitForTimeout(3500);
+  await page.waitForTimeout(2500);
+  // M2: a fresh profile opens on the Exodus prologue (the dev kit does not apply
+  // experience.json, so it appears once start() is done, already ready).
+  await shot('prologue');
+  for (let i = 0; i < 6; i++) { await press('ArrowRight', 80); await page.waitForTimeout(250); }
+  await page.waitForTimeout(600);
+  await shot('prologue-end');
+  await press('Space', 120);
+  await page.waitForTimeout(2500);
   await shot('menu');
   // Menu: Space confirms the focused "New Journey" (no save yet in the dev kit).
   await press('Space', 120);
@@ -64,7 +72,14 @@ if (status === 'started') {
   await press('ArrowDown', 120); await page.waitForTimeout(200);
   await press('ArrowRight', 120); await page.waitForTimeout(200);
   await press('Space', 120);
+  // The free-ship check: CONTINUE FREE is focused.
+  await page.waitForTimeout(700);
+  await shot('choice');
+  await press('Space', 120);
   await page.waitForTimeout(6000);
+  // The opening briefing: three lines, each waits for Continue.
+  await shot('briefing');
+  for (let i = 0; i < 3; i++) { await press('Space', 120); await page.waitForTimeout(1800); }
   await shot('flight');
   for (const spec of (opt('keys', 'KeyA:1400,KeyW:700')).split(',')) {
     const [code, ms] = spec.split(':');

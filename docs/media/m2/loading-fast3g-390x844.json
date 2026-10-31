@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-26T00:08:21.674Z",
+  "machine": "this Linux PC (4 cores, Intel HD Graphics 6000)",
+  "browser": "Chromium (Playwright), headed, GPU, cache disabled",
+  "network": "fast3g",
+  "conditions": {
+    "offline": false,
+    "latency": 563,
+    "downloadThroughput": 188743.68000000002,
+    "uploadThroughput": 86400
+  },
+  "view": "390x844 touch dpr2",
+  "wallSeconds": 43.107,
+  "events": [
+    {
+      "event": "first prologue frame",
+      "ms": 18526
+    },
+    {
+      "event": "art panel_01.webp",
+      "ms": 19483,
+      "decodeMs": 1031
+    },
+    {
+      "event": "art panel_02.webp",
+      "ms": 20652,
+      "decodeMs": 1168
+    },
+    {
+      "event": "game ready (page)",
+      "ms": 23075
+    },
+    {
+      "event": "start() finished (game ready)",
+      "bootMs": 4625
+    }
+  ],
+  "kilobytes": {
+    "other": 3.8,
+    "game JavaScript": 430.7,
+    "three.js (platform-provided in Project 0)": 2153.6,
+    "comic art": 93.5,
+    "audio": 1463.7
+  }
+}

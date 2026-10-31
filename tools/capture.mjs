@@ -15,6 +15,7 @@
  *   eval:JS             evaluate in the page (window.__p0 is the standalone host)
  *   evalfile:PATH       evaluate a JS expression read from a file (may contain ";")
  *   fps:MS              measure requestAnimationFrame frame times for MS
+ *   ready               wait until start() resolved (with --early)
  * Writes OUT/report.json with console errors, frame stats and step log.
  */
 import { createRequire } from 'node:module';
@@ -50,7 +51,11 @@ const report = { size: `${W}x${H}`, touch, steps: [], fps: [] };
 
 const resolveXY = (x, y) => [x < 0 ? W + x : x, y < 0 ? H + y : y];
 await page.goto(url, { waitUntil: 'domcontentloaded' });
-await page.waitForFunction(() => window.__xpReady === true, null, { timeout: 90000 }).catch(() => errors.push('timeout waiting for game ready'));
+// --early: start the steps as soon as the page's own loading screen runs
+// (experience.json loading.own), i.e. while the game is still booting.
+if (has('early')) await page.waitForFunction(() => window.__xpOwnLoading !== undefined, null, { timeout: 30000 }).catch(() => errors.push('timeout waiting for the page'));
+else await page.waitForFunction(() => window.__xpReady === true, null, { timeout: 90000 }).catch(() => errors.push('timeout waiting for game ready'));
+report.t0 = Date.now();
 
 for (const step of steps) {
   const [cmd, ...rest] = step.split(':');
@@ -100,6 +105,9 @@ for (const step of steps) {
         p0.input.gamepad = { axes: [x, y, 0, 0], buttons };
         p0.input.pad = true;
       }, arg);
+    } else if (cmd === 'ready') {
+      await page.waitForFunction(() => window.__xpReady === true, null, { timeout: 120000 });
+      report.steps.push(`=> ready after ${Date.now() - report.t0} ms`);
     } else if (cmd === 'shot') {
       if (has('jpeg')) await page.screenshot({ path: path.join(out, `${arg}.jpg`), type: 'jpeg', quality: 86 });
       else await page.screenshot({ path: path.join(out, `${arg}.png`) });

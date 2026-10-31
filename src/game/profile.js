@@ -1,12 +1,19 @@
 import { STARTER_BASE } from './base.js';
 import { MODULES, parseModuleId } from './ships.js';
 import { sanitizeBindings, DEFAULT_BINDINGS } from '../input/keyboard.js';
+import { DEFAULT_VOLUME } from './audio.js';
+import { sanitizeTutorial } from '../tutorial/tutorial.js';
+import { PILOTS } from '../ui/portraits.js';
 
 /**
  * The player's save, kept by Project 0 per player (p0.saved / p0.save, plain
  * JSON up to 16 KB) or by the standalone host in the browser. Everything is
  * validated on load: a save comes from the player's browser and is never
  * trusted for anything of value (no ATT, no prizes depend on it).
+ *
+ * M2 keeps SAVE_VERSION 1 and only ADDS fields (settings.musicVolume,
+ * settings.sfxVolume, flags): M1 saves load unchanged with defaults, and an M1
+ * build that meets an M2 save simply ignores the new fields.
  */
 export const SAVE_VERSION = 1;
 const SOCKETS = Object.keys(MODULES);
@@ -23,6 +30,11 @@ export function defaultSettings() {
     hints: true,
     sound: true,
     music: true,
+    musicVolume: DEFAULT_VOLUME.music,
+    sfxVolume: DEFAULT_VOLUME.sfx,
+    perfOverlay: false,
+    pilot: 'visor', // radio portrait: 'visor' (neutral), 'woman', 'man'
+    shipModel: 'mk2', // 'mk2' (M2 Explorer) | 'm1' (previous model, dev comparison)
     bindings: sanitizeBindings(DEFAULT_BINDINGS),
   };
 }
@@ -44,6 +56,11 @@ export function newProfile(vessel = 'survivor') {
     powered: false,
     stats: { playSeconds: 0, crystals: 0, ore: 0, docks: 0 },
     discovered: ['outer-verge'],
+    // prologueSeen: the Exodus prologue was read or skipped once (returning
+    // players start at the main menu and can replay it from there).
+    flags: { prologueSeen: false },
+    // First-flight tutorial (src/tutorial/tutorial.js): starts with every new journey.
+    tutorial: { step: 'steer', done: false, flags: { boosted: false, braked: false } },
     settings: defaultSettings(),
   };
 }
@@ -101,6 +118,14 @@ export function sanitizeProfile(raw) {
   p.settings.hints = s.hints !== false;
   p.settings.sound = s.sound !== false;
   p.settings.music = s.music !== false;
+  p.settings.musicVolume = num(s.musicVolume, 0, 1, DEFAULT_VOLUME.music);
+  p.settings.sfxVolume = num(s.sfxVolume, 0, 1, DEFAULT_VOLUME.sfx);
+  p.settings.perfOverlay = s.perfOverlay === true;
+  p.settings.shipModel = s.shipModel === 'm1' ? 'm1' : 'mk2';
+  p.flags.prologueSeen = raw.flags?.prologueSeen === true;
+  // An M1 save has no tutorial: its pilot already knows the way (replay is in the pause menu).
+  p.tutorial = sanitizeTutorial(raw.tutorial, true);
+  p.settings.pilot = PILOTS.includes(s.pilot) ? s.pilot : 'visor';
   p.settings.bindings = sanitizeBindings(s.bindings);
   return p;
 }

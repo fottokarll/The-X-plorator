@@ -1,5 +1,79 @@
 # Changelog
 
+## 0.3.2-m2 — 2026-10-31 (live on lot #323)
+
+### Changed
+- The name players see is now **The-X-plorator** (owner request): the city's experience name and
+  credits, the lot name "The-X-plorator · Launch Beacon" and its description, the main menu logo, the
+  prologue header and panel 7's caption, the standalone page. The coloured X stays. Save keys, log tags
+  and the lot's neon sign ("X-PLORATOR", uppercase stroke letters) are unchanged.
+
+### Fixed
+- Phone prologue: the caption plate shrinks its text to fit the frame (the longer panel 7 caption
+  touched the edge at 390 px).
+
+### Published
+- Experience `4254c6d684ea9bdb` from `e48f752` (submission 13536) and the street build with the new
+  name (submission 13534, geometry unchanged: `02a57ea8b72b7df5-dc28e6a7f6bd1a2c`), both `200 live` with
+  no warnings, owner-approved. Tag `m2.1-live-lot323`.
+
+## 0.3.1-m2 — 2026-10-26 (owner playtest fixes; live on lot #323 since 2026-10-29)
+
+### Published
+- Lot #323 runs M2 with the owner's approval (29 Oct 2026): experience `eb537c7b15a1fbb5` from `0a649d5`
+  (submission 13114, `200 live`, server validation 0 errors and 0 warnings), tag `m2-live-lot323`. The
+  street build was unchanged and was not republished. Lot #696 untouched.
+
+### Fixed
+- **Prologue balloons covered people** (panels 1, 2, 3 and 5 on the desktop page): a line that does
+  not fit the drawn balloon now gets a balloon of the game's own only inside that balloon's measured
+  free room (no people there, below the caption plate), with its tail on the drawn tail's tip; the
+  text gets smaller before the balloon grows. Checked at eight screen sizes.
+- **The opening radio lines went by too fast** ("I didn't even notice it and it disappeared"): no
+  tutorial line moves on by itself any more. The first flight opens with an *Incoming transmission*
+  briefing: the ship holds, each line types in and waits for Continue (Space / E, A, tap); Skip is a
+  small corner link. New lines on the HUD card glow for a moment.
+
+### Changed
+- Mira and the pilot portraits are redrawn in the prologue's comic style (ink outlines, large eyes,
+  white-and-orange crew uniforms); Mira is modelled on the hangar engineer of panel 4.
+
+## 0.3.0-m2 — 2026-10-26 (branch `dev/m2-exodus-comic-ship`, release candidate, not published)
+
+Full report: [M2_UPDATE_REPORT.md](M2_UPDATE_REPORT.md).
+
+### Added
+- **Exodus prologue**: the owner's approved seven-beat comic as the loading screen (`"loading":
+  { "own": true }`), desktop page / phone portrait / phone landscape layouts from one story array,
+  every word as real text from `src/story/strings.en.js`, honest boot progress, BEGIN only when ready,
+  SKIP, transcript, retry on errors, replay from the main menu (`docs/EXODUS_PROLOGUE.md`).
+- **XPLORATOR_EXPLORER_MK2**: the new white and orange explorer, procedural, three draw calls, same
+  gameplay radius as M1; the M1 ship stays for rollback (`docs/SHIP_MK2.md`).
+- **First-flight tutorial** with Mira of Haven Control, event-driven, skip/resume/replay; optional pilot
+  portrait (`docs/TUTORIAL.md`).
+- Music and effects volume sliders; developer performance report; developer ship A/B switch.
+- Tools: `audio-loop-check.mjs`, `load-timing.mjs`, `comic-art.py`, `ship-shots.mjs`, ship turntable
+  `standalone/ship-viewer.html`, `m2-checks.mjs`, `capture-m2.sh`; 25 new unit tests (61 total).
+
+### Fixed
+- Music loop seam (filter start, the streamed music player, resampling at decode) and the mix (effects
+  now 8-9 dB under the music; a soft sonar chord replaces the harsh scan) (`docs/AUDIO.md`).
+- Foggy, low-contrast vessel previews; white glare on the ship, hangar and station (bloom threshold,
+  exposure, materials).
+- Overlapping HUD messages on phones; small top-right buttons; a mouse drag switching to the touch HUD.
+- Guests' refused saves (HTTP 401) retried all session.
+- The final loading message was dropped by the host's 250 ms throttle (bar stuck at 97 %).
+
+### Changed
+- Vessel cards: Survivor selected and free; 2/5/10 ATT vessels clearly *locked previews of planned
+  ships*; a pressure-free CONTINUE FREE / VIEW OTHER SHIPS check.
+- Saves: still version 1, new fields only; M1 saves load unchanged.
+- One shared shader program for every white hull (faster start on software renderers).
+
+### Not done / not verified
+- Server validation (needs the owner's key), the live city, physical phones and controllers.
+- The prologue art is cleaned crops of the approved composites, not production masters.
+
 ## 0.2.1-m1 — 2026-10-24 (branch `dev/m1-outer-verge`)
 
 ### Published

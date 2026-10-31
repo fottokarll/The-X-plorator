@@ -102,7 +102,7 @@ export function createInputHub({ getKeys, getGamepad, isPadActive, touch }) {
     // Touch controls (virtual stick + buttons drawn by the HUD).
     const t = touch?.snapshot();
     if (t && t.connected) {
-      device = 'touch';
+      if (t.fromTouch !== false) device = 'touch';
       if (Math.abs(t.yaw) > Math.abs(out.yaw)) out.yaw = t.yaw;
       if (Math.abs(t.pitch) > Math.abs(out.pitch)) out.pitch = t.pitch;
       out.boost = Math.max(out.boost, t.boost ? 1 : 0);

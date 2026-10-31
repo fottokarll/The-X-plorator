@@ -329,6 +329,7 @@ export function createHangarScreen(game) {
       game.world.glows.object.visible = true;
       game.world.setShowroomLight(0);
       game.pipeline.setBloom(0.85);
+      game.pipeline.setExposure(1);
       game.hideShowroom();
     },
     draw(ctx, view, reg, state) {
@@ -404,8 +405,9 @@ export function createHangarScreen(game) {
       grp.scale.setScalar((fit * worldPerPx) / (entry.ship.radius * 2));
       if (!dragging) shipYaw += (0 - shipYaw) * Math.min(1, dt * 3);
       orientForShowcase(grp, cam.quaternion, 0.32, shipYaw);
-      game.world.setShowroomLight(2.2, cam, grp.position);
-      game.pipeline.setBloom(0.35);
+      game.world.setShowroomLight(1.9, cam, grp.position);
+      game.pipeline.setBloom(0.3);
+      game.pipeline.setExposure(0.9);
       grp.updateMatrixWorld(true);
       // Project sockets for the callouts and sprites.
       const next = {};

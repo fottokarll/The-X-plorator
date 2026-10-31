@@ -66,6 +66,7 @@ export function createBaseScreen(game) {
     },
     exit() {
       game.pipeline.setBloom(0.85);
+      game.pipeline.setExposure(1);
       game.camera.clearViewOffset();
       game.world.ghost.hide();
       game.world.trails.object.visible = true;
@@ -147,6 +148,7 @@ export function createBaseScreen(game) {
       const target = new THREE.Vector3(0, 2, 6);
       const camWorld = new THREE.Vector3(-84, 118, -104).multiplyScalar(view.portrait ? 1.45 : 1);
       game.pipeline.setBloom(0.4);
+      game.pipeline.setExposure(0.92);
       game.setCameraWorld(camWorld);
       cam.position.copy(game.anchor);
       cam.lookAt(game.anchor.clone().add(target.clone().sub(camWorld)));

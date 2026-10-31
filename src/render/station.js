@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { shipMaterials } from './ship-model.js';
+import { shipMaterials, rimMaterial } from './ship-model.js';
 import { hexToLocal, HEX_SIZE } from '../game/base.js';
 
 /**
@@ -113,11 +113,21 @@ export const MODULE_INFO = Object.freeze({
   scanner: { label: 'Scanner Array' },
 });
 
+// The station's decks are large flat white surfaces facing the key light: with
+// the ship's hull material they read as a clipped white glare. They keep the
+// same look with a softer albedo and a fainter rim light.
+let stationHull = null;
+function stationHullMaterial() {
+  if (stationHull) return stationHull;
+  stationHull = rimMaterial({ rim: 0.22, color: 0xc9d2df, roughness: 0.55, metalness: 0.18 });
+  return stationHull;
+}
+
 export function createStation({ tiles, powered = false, position = [0, 0, 0] }) {
   const group = new THREE.Group();
   group.name = 'HavenOutpost';
   group.position.set(...position);
-  const mats = shipMaterials();
+  const mats = { ...shipMaterials(), hull: stationHullMaterial() };
   const meshes = { hull: null, glass: null, glow: null };
   let dockLocal = new THREE.Vector3(0, 2, 0);
 

@@ -104,7 +104,7 @@ outline of the lot box. The city's own lighting, veil and halo will differ.
 ## Rebuild, preview, validate
 
 ```sh
-cd /home/karll/The-X-plorator   # or the worktree that holds lot/
+cd ~/The-X-plorator   # or the worktree that holds lot/
 node lot/build-lot.mjs           # writes dist/lot/{lod0,lod1,lod2}.glb, lot.json, *.glsl, build.js, manifest.json, stats.json
 node lot/preview-lot.mjs         # renders docs/media/lot323/*.png (P0_HEADLESS=1 for headless SwiftShader)
 P0_KEY_FILE=/path/to/private/keyfile node lot/validate-lot.mjs   # validate only; key read in-process, never printed

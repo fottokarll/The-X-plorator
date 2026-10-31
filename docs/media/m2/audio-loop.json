@@ -1,0 +1,98 @@
+{
+  "date": "2026-10-26T02:57:21.434Z",
+  "browser": "Chromium (Playwright, headed GPU, autoplay allowed)",
+  "path": "standalone host p0.sound (Web Audio buffer loop, as in Project 0)",
+  "file": "assets/audio/verge-ambient.wav",
+  "sampleRate": 48000,
+  "recordedSeconds": 76.2,
+  "loopSeconds": 24,
+  "loopsCovered": 3,
+  "level": {
+    "rms": 0.1612,
+    "peak": 0.6424
+  },
+  "gaps": [],
+  "d2": {
+    "median": 0.000296,
+    "p999": 0.00151
+  },
+  "seamsFrom": "alignment of the recording with the music file (envelope + sample correlation)",
+  "alignment": {
+    "firstSeamSeconds": 20.7253,
+    "correlationWithFile": 1,
+    "timestampEstimate": [
+      8.032,
+      32.032,
+      56.032
+    ]
+  },
+  "loopBoundaries": [
+    {
+      "at": 20.725,
+      "maxD2": 0.00085,
+      "ratioToP999": 0.56
+    },
+    {
+      "at": 44.725,
+      "maxD2": 0.00085,
+      "ratioToP999": 0.56
+    },
+    {
+      "at": 68.725,
+      "maxD2": 0.00085,
+      "ratioToP999": 0.56
+    }
+  ],
+  "sharpestSpikes": [
+    {
+      "at": 2.68,
+      "d2": 0.0019,
+      "ratioToP999": 1.26,
+      "nearLoopBoundaryMs": 18044.8
+    },
+    {
+      "at": 26.68,
+      "d2": 0.0019,
+      "ratioToP999": 1.26,
+      "nearLoopBoundaryMs": 5955.2
+    },
+    {
+      "at": 50.681,
+      "d2": 0.0019,
+      "ratioToP999": 1.26,
+      "nearLoopBoundaryMs": 5955.2
+    },
+    {
+      "at": 74.68,
+      "d2": 0.0019,
+      "ratioToP999": 1.26,
+      "nearLoopBoundaryMs": 5955.2
+    },
+    {
+      "at": 2.612,
+      "d2": 0.00183,
+      "ratioToP999": 1.21,
+      "nearLoopBoundaryMs": 18113.1
+    },
+    {
+      "at": 26.612,
+      "d2": 0.00183,
+      "ratioToP999": 1.21,
+      "nearLoopBoundaryMs": 5886.9
+    },
+    {
+      "at": 50.612,
+      "d2": 0.00183,
+      "ratioToP999": 1.21,
+      "nearLoopBoundaryMs": 5886.9
+    },
+    {
+      "at": 74.612,
+      "d2": 0.00183,
+      "ratioToP999": 1.21,
+      "nearLoopBoundaryMs": 5886.9
+    }
+  ],
+  "errors": [],
+  "wallSeconds": 117.9
+}

@@ -1,4 +1,4 @@
-# Run THE X-PLORATOR (M1)
+# Run THE X-PLORATOR (M2 release candidate)
 
 Tested on this Linux machine with Node 22 and Chromium (Playwright). Nothing here needs a Project 0
 key, an account or the internet, except the optional dev kit (step 4) and validation (step 6).
@@ -11,7 +11,7 @@ key, an account or the internet, except the optional dev kit (step 4) and valida
 
 ```sh
 cd ~/The-X-plorator
-git checkout dev/m1-outer-verge
+git checkout dev/m2-exodus-comic-ship      # the live M1 build is tag m1-live-lot323
 LD_LIBRARY_PATH= npm install
 ```
 
@@ -25,8 +25,13 @@ npm start
 Open **http://127.0.0.1:5500/** in Chrome, Firefox or Edge. Leave the terminal open while you play;
 stop the server with `Ctrl+C`.
 
-- Fresh start (ignore the saved game): http://127.0.0.1:5500/?fresh=1
+- Fresh start (ignore the saved game, see the prologue): http://127.0.0.1:5500/?fresh=1
 - Force a pixel ratio (performance test): http://127.0.0.1:5500/?dpr=1
+- Local test switches: `?perf=1` performance report, `?ship=m1` the M1 ship, `?guest=1` play as a
+  guest (saves refused like the city's 401), `?story=1` always show the prologue, `?noown=1` behave
+  like the dev kit (no own loading screen), `?failboot=world` / `?artfail=2` / `?artdelay=1500`
+  failure and slow-art tests.
+- Ship turntable (QA): http://127.0.0.1:5500/standalone/ship-viewer.html
 - Your progress is saved in the browser (in Project 0 the city keeps it per player).
 - Graphics quality: Settings → Graphics quality (Auto chooses High on desktop, Medium on phones).
 
@@ -54,8 +59,17 @@ Then open `http://<this-computer's-IP>:5500/` on the phone (find the IP with `ho
 | Look around (optional) | right-drag | right stick | drag on the right |
 | Zoom (eases back) | mouse wheel, + / − | d-pad ▲ / ▼ | — |
 | Menus | arrows + Space/E/Enter, Backspace back | stick/d-pad + A, B back | tap |
+| Prologue | ← → turn, Space next, Backspace back | d-pad ◀ ▶, A | swipe or tap NEXT / BACK |
 
 Keys can be rebound in Settings → Keyboard bindings (Enter, Esc, Tab, Ctrl and Alt are reserved).
+
+### The prologue and the first flight
+
+A fresh start opens the Exodus prologue while the game loads. Read it at your own pace (SKIP STORY
+goes on as soon as the game is ready); BEGIN THE EXODUS opens the main menu, which can replay it
+(Prologue). New Journey → choose the Survivor (free) → CONTINUE FREE. Mira of Haven Control then
+guides the first mission one task at a time (Skip tutorial on her card or in the pause menu; Replay
+tutorial in the pause menu).
 
 ### The first mission ("First Light")
 
@@ -85,9 +99,14 @@ LD_LIBRARY_PATH= node tools/devkit-touch.mjs --out docs/media/devkit
 ## 5. Tests
 
 ```sh
-npm test                                              # 36 unit tests (flight, input, mission, saves, base, camera...)
-LD_LIBRARY_PATH= npm run playtest -- --hangar         # full loop with real keyboard input + hangar upgrade
-LD_LIBRARY_PATH= bash tools/capture-suite.sh          # regenerate docs/media/m1 screenshots
+npm test                                              # 61 unit tests (M1's 36 + audio, prologue/boot, ship, tutorial)
+LD_LIBRARY_PATH= npm run playtest -- --hangar         # prologue + full loop with real keyboard input + hangar upgrade
+LD_LIBRARY_PATH= npm run playtest -- --tutorial       # the same, finishing the first-flight tutorial
+LD_LIBRARY_PATH= node tools/m2-checks.mjs             # rotation, BEGIN-before-ready, controller, old save, exposure, HUD buttons
+LD_LIBRARY_PATH= node tools/audio-loop-check.mjs      # records three music loops, measures gaps and seams
+LD_LIBRARY_PATH= node tools/load-timing.mjs --net fast3g --size 390x844 --touch --three-local
+LD_LIBRARY_PATH= bash tools/capture-m2.sh             # regenerate docs/media/m2/after screenshots
+LD_LIBRARY_PATH= node tools/ship-shots.mjs            # real renders of the Explorer Mk2 from every angle
 ```
 
 `npm run playtest` and the capture tools open a Chromium window (GPU) and need `npm start` running.

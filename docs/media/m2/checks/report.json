@@ -1,0 +1,64 @@
+{
+  "date": "2026-10-26T23:36:54.367Z",
+  "browser": "Chromium (Playwright), headed, GPU",
+  "results": [
+    {
+      "name": "rotation",
+      "ok": true,
+      "notes": [
+        "portrait panel 3 (single) -> landscape panel 3 (cinema)",
+        "errors 0"
+      ]
+    },
+    {
+      "name": "ready",
+      "ok": true,
+      "notes": [
+        "menu before ready: false",
+        "after ready: story/begin",
+        "10 s later: story/begin",
+        "after Space: menu",
+        "errors 0"
+      ]
+    },
+    {
+      "name": "gamepad",
+      "ok": true,
+      "notes": [
+        "menu menu, select select, check choice, mode flight, briefing shown, heard with A",
+        "yaw 0.00 -> -1.17",
+        "tutorial steer -> speed",
+        "errors 0",
+        "second run; the first run passed the briefing (shown, heard with A) and the steering but lost one simulated A press in the main menu (menu menu, select menu, check select, mode flight, briefing shown, heard with A)"
+      ],
+      "seconds": 71.4
+    },
+    {
+      "name": "oldsave",
+      "ok": true,
+      "notes": [
+        "first screen story, menu menu, after Continue flight",
+        "bank 6/2, engine Lv 2, step free, tutorial done true",
+        "saved: prologueSeen true, music muted kept true, musicVolume 0.8",
+        "errors 0"
+      ]
+    },
+    {
+      "name": "exposure",
+      "ok": true,
+      "notes": [
+        "low: low, errors 0",
+        "medium: medium, errors 0",
+        "high: high, errors 0"
+      ]
+    },
+    {
+      "name": "buttons",
+      "ok": true,
+      "notes": [
+        "boost flight, scan no signal in range, base base, hangar hangar, map map, hangar(top) hangar, pause pause, resume hud",
+        "errors 0"
+      ]
+    }
+  ]
+}
