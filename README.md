@@ -1,7 +1,8 @@
 # THE X-PLORATOR 🚀
 
 **A serene cosmic exploration and colony-building game for Project 0 City (lot #323) and the browser.**
-Status: **M2 live on lot #323** since 29 Oct 2026 (https://project0.city/lot/323; tag `m2-live-lot323`,
+Status: **M2 live on lot #323** since 29 Oct 2026, shown to players as **The-X-plorator** since 31 Oct
+(https://project0.city/lot/323; tag `m2.1-live-lot323`,
 branch `dev/m2-exodus-comic-ship`): Exodus prologue, new Explorer Mk2, first-flight tutorial, audio and
 visual polish. M1 "Outer Verge" (live 24-29 Oct 2026) is kept as tag `m1-live-lot323`.
 

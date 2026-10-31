@@ -39,6 +39,7 @@ validated UI fixes that were never published.
 
 | Tag (pushed) | Commit | What |
 |---|---|---|
+| `m2.1-live-lot323` | `e48f752` | live since 31 Oct 2026: the name The-X-plorator (experience `4254c6d684ea9bdb`) |
 | `m2-live-lot323` | `0a649d5` | M2, live on lot #323 since 29 Oct 2026 (experience `eb537c7b15a1fbb5`) |
 | `m1-live-lot323` | `f337a9f` | M1, live on lot #323 24-29 Oct 2026 (experience `2ad35ac72d7916ec`) |
 | `m1-baseline` | `0c23a19` | M2 starting point (M1 + the two unpublished UI fixes) |

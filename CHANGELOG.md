@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.3.2-m2 — 2026-10-31 (live on lot #323)
+
+### Changed
+- The name players see is now **The-X-plorator** (owner request): the city's experience name and
+  credits, the lot name "The-X-plorator · Launch Beacon" and its description, the main menu logo, the
+  prologue header and panel 7's caption, the standalone page. The coloured X stays. Save keys, log tags
+  and the lot's neon sign ("X-PLORATOR", uppercase stroke letters) are unchanged.
+
+### Fixed
+- Phone prologue: the caption plate shrinks its text to fit the frame (the longer panel 7 caption
+  touched the edge at 390 px).
+
+### Published
+- Experience `4254c6d684ea9bdb` from `e48f752` (submission 13536) and the street build with the new
+  name (submission 13534, geometry unchanged: `02a57ea8b72b7df5-dc28e6a7f6bd1a2c`), both `200 live` with
+  no warnings, owner-approved. Tag `m2.1-live-lot323`.
+
 ## 0.3.1-m2 — 2026-10-26 (owner playtest fixes; live on lot #323 since 2026-10-29)
 
 ### Published

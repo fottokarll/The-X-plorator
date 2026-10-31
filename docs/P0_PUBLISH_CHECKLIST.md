@@ -1,7 +1,7 @@
 # Lot #323 publication checklist
 
-**M1 published on 24 Oct 2026, the M2 experience on 29 Oct 2026, each with the owner's explicit
-approval.** Both parts are live on lot 323.
+**M1 published on 24 Oct 2026, the M2 experience on 29 Oct 2026 and the rename to The-X-plorator
+(game and street build) on 31 Oct 2026, each with the owner's explicit approval.** Both parts are live on lot 323.
 Every publish replaces what the lot shows for everyone and runs the city's review. Publishing again
 needs the owner's go-ahead. **Never use lot 696 (STARBOX)**: `tools/p0-publish.mjs` only accepts
 lot 323.
@@ -10,8 +10,8 @@ lot 323.
 
 | Deliverable | Source | Build | Live version |
 |---|---|---|---|
-| Street build "THE X-PLORATOR · Launch Beacon" (LOD0/1/2 + lot.json shaders + build.js) | `lot/` | `npm run lot:build` → `dist/lot/` | `02a57ea8b72b7df5-dc28e6a7f6bd1a2c` (submission 10771, `200 live`) |
-| Experience: THE X-PLORATOR M2 | `src/` (package root) | `npm run package` → `dist/the-xplorator-experience.zip` | `eb537c7b15a1fbb5` from `0a649d5` (submission 13114, `200 live`, no warnings); M1 was `2ad35ac72d7916ec` from `f337a9f` |
+| Street build "THE X-PLORATOR · Launch Beacon" (LOD0/1/2 + lot.json shaders + build.js) | `lot/` | `npm run lot:build` → `dist/lot/` | `02a57ea8b72b7df5-dc28e6a7f6bd1a2c`, name "The-X-plorator · Launch Beacon" (submission 13534, `200 live`) |
+| Experience: THE X-PLORATOR M2 | `src/` (package root) | `npm run package` → `dist/the-xplorator-experience.zip` | `4254c6d684ea9bdb` from `e48f752` (submission 13536, `200 live`, no warnings); before: `eb537c7b15a1fbb5` (M2), `2ad35ac72d7916ec` (M1) |
 
 ## Before every publish
 
